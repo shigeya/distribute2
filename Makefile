@@ -7,7 +7,7 @@
 # Modified by: shin@u-tokyo.ac.jp, toku@dit.co.jp, shigeya@foretune.co.jp
 #		and hiro@is.s.u-tokyo.ac.jp
 #
-RCONFIG=-DRELEASESTATE=\"Alpha\"
+RCONFIG=-DRELEASESTATE=\"Alpha+/Exp\"
 
 #
 # Available options:
@@ -19,7 +19,7 @@ RCONFIG=-DRELEASESTATE=\"Alpha\"
 # 	-DSYSLOG_FACILITY=n	-- value for syslogd's facility value
 #				   defaulted to LOG_LOCAL4
 #
-OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION -DSYSLOG_FACILITY=LOG_LOCAL4
+OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION -DSYSLOG_FACILITY=LOG_LOCAL4 -DDEBUGLOG
 #
 
 #
@@ -120,6 +120,6 @@ prtest: parserecipfile.c
 	cc -DTEST -g -o prtest parserecipfile.c longstr.o
 
 ###
-distribute.o:	distribute.c Makefile patchlevel.h longstr.h
-header.o:	header.c
+distribute.o:	distribute.c Makefile patchlevel.h longstr.h config.h
+header.o:	header.c config.h
 longstr.o:	longstr.c longstr.h

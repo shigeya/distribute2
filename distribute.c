@@ -15,6 +15,8 @@
 #include "patchlevel.h"		/* version identifier */
 #include "longstr.h"
 
+#include "config.h"
+
 /*
  * Send a mail message to users on a distribution list.  The message
  * header is altered mainly to allow error messages to be returned to
@@ -43,47 +45,6 @@
 char *rcsID = "$Id$";
 char *versionID = VERSION;
 int patchlevel = PATCHLEVEL;
-
-/* Default configuration check and define if not defined
- */
-#ifndef DEF_SEQ_PATH
-# define DEF_SEQ_PATH		"/usr/lib/mail-list"
-#endif
-
-#ifndef DEF_RECIPIENT_PATH
-# define DEF_RECIPIENT_PATH	"/usr/lib/mail-list"
-#endif
-
-#ifndef DEF_MAJORDOMO_RECIPIENT_PATH
-# define DEF_MAJORDOMO_RECIPIENT_PATH "/usr/lib/mail-list/majordomo/lists"
-#endif
-
-#ifndef DEF_SEQ_SUFFIX
-# define DEF_SEQ_SUFFIX		".seq"
-#endif
-
-#ifndef DEF_RECIPIENT_SUFFIX
-# define DEF_RECIPIENT_SUFFIX	".rec"
-#endif
-
-#ifdef MSC
-# define DEF_OPENALIAS_CHAR	'['
-# define DEF_CLOSEALIAS_CHAR	']'
-#endif
-
-#ifndef DEF_OPENALIAS_CHAR
-# define DEF_OPENALIAS_CHAR	'('
-#endif
-#ifndef DEF_CLOSEALIAS_CHAR
-# define DEF_CLOSEALIAS_CHAR	')'
-#endif
-
-#ifndef SYSLOG_FACILITY
-# define SYSLOG_FACILITY	LOG_LOCAL4
-#endif
-
-#define	MAXSUBJLEN	1024	/* we assume subject will no
-				 * longer than this length */
 
 
 extern	int head_parse();
@@ -125,7 +86,7 @@ char closealiaschar = DEF_CLOSEALIAS_CHAR;
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
 
 
-#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:RsdeijVA"
+#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:P:RsdeijVAo"
 
 void
 usage() {
@@ -137,10 +98,10 @@ usage() {
     fprintf(stderr, " [-I issuenumberfile]");
 #endif
 #ifdef SUBJALIAS
-    fprintf(stderr, " [-a aliasid] [-B brace_lr]");
+    fprintf(stderr, " [-a aliasid] [-B brace_lr] [-P precedence]");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "	[-RsdeijVA] [-m sendmail-flags]\n");
+    fprintf(stderr, "	[-RsdeijVAo] [-m sendmail-flags]\n");
     fprintf(stderr, "	{-L recip-addr-file | recip-addr ...}\n");
 }
 
@@ -152,7 +113,7 @@ printversion()
 #endif
     fprintf(stderr, "patchlevel %d\n", patchlevel);
     fprintf(stderr, "%s\n", rcsID);
-    fprintf(stderr, "\nOptions:");
+    fprintf(stderr, "\nOptions:\n\t");
 #ifdef SYSLOG
     fprintf(stderr, " [SYSLOG]");
 #endif
@@ -171,16 +132,19 @@ printversion()
 #ifdef DEBUGLOG
     fprintf(stderr, " [DEBUGLOG]");
 #endif
+    putc('\n', stderr);
+    fprintf(stderr, "\t [MAXSUBJLEN=%d] [MAXHEADERLINE=%d] [MAXHEADERLEN=%d]\n",
+	    MAXSUBJLEN, MAXHEADERLINE, MAXHEADERLEN);
     fprintf(stderr, "\nDefaults:\n");
 #ifdef DEF_ALIAS_CHAR_OPTION
-    fprintf(stderr, "\tAlias option: -B%s\n", DEF_ALIAS_CHAR_OPTION);
+    fprintf(stderr, "\t Alias option: -B%s\n", DEF_ALIAS_CHAR_OPTION);
 #endif
 #ifdef DEF_DOMAINNAME
-    fprintf(stderr, "\tDefault Domain Name: %s\n", DEF_DOMAINNAME);
+    fprintf(stderr, "\t Default Domain Name: %s\n", DEF_DOMAINNAME);
 #endif
-    fprintf(stderr, "\tRecipient file default path: %s\n", DEF_RECIPIENT_PATH);
-    fprintf(stderr, "\tSequence file default path:  %s\n", DEF_SEQ_PATH);
-    fprintf(stderr, "\tMajordomo recipient file default path:  %s\n", DEF_MAJORDOMO_RECIPIENT_PATH);
+    fprintf(stderr, "\t Recipient file default path: %s\n", DEF_RECIPIENT_PATH);
+    fprintf(stderr, "\t Sequence file default path:  %s\n", DEF_SEQ_PATH);
+    fprintf(stderr, "\t Majordomo recipient file default path:  %s\n", DEF_MAJORDOMO_RECIPIENT_PATH);
 
     exit(0);
 }
@@ -482,7 +446,7 @@ AddAliasIDToSubject(subjectbuf, subject, aliasid, issuenum)
 		p++;
 	}
 	
-	if (issuenum) {
+	if (issuenum >= 0) {	/* with valid issue number, or error(0) */
 	    sprintf(subjectbuf, subjfmt,
 		    openaliaschar,
 		    aliasid,issuenum,
@@ -490,7 +454,7 @@ AddAliasIDToSubject(subjectbuf, subject, aliasid, issuenum)
 		    subject);
 	}
 	else {
-	    printf(subjectbuf, "%c%s%c%s",
+	    sprintf(subjectbuf, "%c%s%c%s",
 		   openaliaschar,
 		   aliasid,
 		   closealiaschar,
@@ -514,7 +478,7 @@ char ** argv;
 	register FILE *pipe = NULL, *headf = NULL, *footf = NULL;
 	FILE *noisef = NULL;
 	FILE *recipf = NULL;
-	char *headv[100];	/* Header vector */
+	char *headv[MAXHEADERLINE];	/* Header vector */
 	char *list = NULL;	/* Name of the list */
 	char *host = NULL;	/* Name of the list's host */
 	char *senderaddr = NULL;/* sender address for Sender: line */
@@ -529,7 +493,7 @@ char ** argv;
 	char *footerfile = NULL;
 	char *replyto = NULL;
 #ifdef ISSUE
-	int issuenum = 0;
+	int issuenum = -1;
 #endif
 #ifdef ADDVERSION
 	int addversion = 1;	/* default */
@@ -543,6 +507,7 @@ char ** argv;
 	int errorsto = 0;
 	int forcereplyto = 0;	/* ignore reply to */
 	int majordomo = 0;	/* is NOT majordomo mode in default */
+	int useowner = 0;	/* use owner instead of request for sender */
 	char *originatorreplyto = NULL;
 	int c;
 	char openc, closec;
@@ -550,6 +515,9 @@ char ** argv;
 	extern int optind;
 	int optionerror = 0;
 	char *recipientbuf;
+	char maintainer[128];
+	char *headererr = NULL;
+	char *precedence = NULL;
 	
 #ifdef SYSLOG	
 	openlog("distribute", LOG_PID, SYSLOG_FACILITY);
@@ -691,9 +659,17 @@ char ** argv;
 			aliasid = optarg;
 			break;
 
+		case 'o':	/* use owner */
+			useowner++;
+			break;
+
 		case 'L':	/* recip-addr-file */
 			recipfile = adddefaultpath(recipient_path, optarg, "");
 			break;
+
+		case 'P':	/* precedence */
+		    precedence = optarg;
+		    break;
 
 		case 'V':
 		    printversion();
@@ -763,7 +739,7 @@ char ** argv;
 	    header = head_delete(headc, headv, "Reply-To:");
 	    if (forcereplyto) {
 		if (header != NULL)
-		free(header);
+		    free(header);
 	    }
 	    else {
 		originatorreplyto = header;
@@ -788,6 +764,18 @@ char ** argv;
 			;
 	}
 
+	/* set maintainer
+	 */
+	if (senderaddr != NULL) {
+	    strcpy(maintainer, senderaddr);
+	}
+	else {
+	    if (majordomo || useowner)
+		sprintf(maintainer, "owner-%s", list);
+	    else
+		sprintf(maintainer, "%s-request", list);
+	}
+
 	/*
 	 * Create the command that we are about to run.  We use the sender
 	 * address given to us by the user (if we were given one); otherwise,
@@ -799,12 +787,7 @@ char ** argv;
 	if (sendmailargs != NULL)
 		argappend(sendmailargs);
 	argappend(" -f");
-	if (senderaddr != NULL)
-		argappend(senderaddr);
-	else {
-		argappend(list);
-		argappend("-request");
-	}
+	argappend(maintainer);
 
 	/* add recipients */
 	if (recipientbuf != NULL) {
@@ -825,7 +808,9 @@ char ** argv;
 	for (i=0; i<headc; i++) {
 		if (headv[i] != NULL)
 		{
-			if (checkhdr(headv[i])) {
+			extern char* checkhdr();
+
+			if ((headererr = checkhdr(headv[i])) != NULL) {
 			    argreset();
 			    if (senderaddr != NULL) {
 				argappend("/usr/lib/sendmail -f");
@@ -835,11 +820,9 @@ char ** argv;
 			    }
 			    else {
 				argappend("/usr/lib/sendmail -f");
-				argappend(list);
-				argappend("-request");
+				argappend(maintainer);
 				argappend(" ");
-				argappend(list);
-				argappend("-request");
+				argappend(maintainer);
 			    }
 
 			    badhdr++;
@@ -847,6 +830,10 @@ char ** argv;
 			}
 		}
 	}
+
+	/*
+	 * Give the command its input.
+	 */
 
 	/*
 	 * Deal with being smart about add-me mail here.
@@ -862,21 +849,12 @@ char ** argv;
 		    }
 		    else {
 			argappend("/usr/lib/sendmail -f");
-			argappend(list);
-			argappend("-request");
+			argappend(maintainer);
 			argappend(" ");
-			argappend(list);
-			argappend("-request");
+			argappend(maintainer);
 		    }
 		}
 	}
-
-#ifdef ISSUE
-	if (!(badhdr || wasadmin) && (issuefile != NULL)) {
-		int getnextissue();
-		issuenum = getnextissue(issuefile);
-	}
-#endif
 
 	/*
 	 * Start this command running.
@@ -893,9 +871,47 @@ char ** argv;
 		}
 	}
 
-	/*
-	 * Give the command its input.
+#ifdef ISSUE
+	if (badhdr || wasadmin) {
+	    issuenum = 0;
+	}
+	else if (issuefile != NULL) {
+	    int getnextissue();
+	    issuenum = getnextissue(issuefile);
+	}
+	else {
+	    issuenum = -1;
+	}
+#endif
+
+	/* If something wrong going on, bounce the mail to maintainer
 	 */
+	if (badhdr) {		/* if header is bad */
+	    fprintf(pipe, "To: %s@%s\n", maintainer, host);
+	    fprintf(pipe, "From: The Distribute Mailinglist Handler <%s@%s>\n",
+		    maintainer, host);
+	    fprintf(pipe, "Subject: Distribute error: Bad Header: %s\n", headererr);
+	    putc('\n', pipe);
+	    fprintf(pipe, "Following article for mailing list \"%s\" has been rejected\n",list);
+	    fprintf(pipe, "due to header error \"%s.\"\n", headererr);
+	    fprintf(pipe, "Please check header or software.\n");
+	    putc('\n', pipe);
+	    fprintf(pipe, "distribute -- Your mailing list handler.\n");
+	    fprintf(pipe, "\n---- unsent message header follows ----\n\n");
+	}
+	else if (wasadmin) {		/* if header is bad */
+	    fprintf(pipe, "To: %s@%s\n", maintainer, host);
+	    fprintf(pipe, "From: The Distribute Mailinglist Handler <%s@%s>\n",
+		    maintainer, host );
+	    fprintf(pipe, "Subject: Distribute: administrative message\n");
+	    putc('\n', pipe);
+	    fprintf(pipe, "Following article for mailing list \"%s\" has been rejected\n",list);
+	    fprintf(pipe, "because it looks just a add me/remove me letter.\n\n");
+	    fprintf(pipe, "Please check it.\n");
+	    putc('\n', pipe);
+	    fprintf(pipe, "distribute -- Your mailing list handler.\n");
+	    fprintf(pipe, "\n---- unsent message header follows ----\n\n");
+	}
 
 	/*
 	 * Put out the headers.
@@ -938,8 +954,7 @@ char ** argv;
 #endif	
 
 #if defined(ISSUE)
-	if (issuenum)
-	    AddAliasIDToHeader(pipe, aliasid, issuenum);
+	AddAliasIDToHeader(pipe, aliasid, issuenum);
 #endif
 
 #if defined(SUBJALIAS)
@@ -955,22 +970,19 @@ char ** argv;
 	fprintf(debuglog, "Subject: %s\n", subjectbuf);
 #endif
 
-	if (errorsto)
-	    fprintf(pipe, "Errors-To: %s-request@%s\n", list, host);
+	if (errorsto) {
+	    fprintf(pipe, "Errors-To: %s@%s\n", maintainer, host);
+	}
 
 	/*
 	 * Add a new Sender: field as requested earlier.  Also add
 	 * a blank line separating the header lines from the body of
 	 * the message.
 	 */
-	if (senderaddr != NULL){
-		if (index(senderaddr,'@') == NULL)
-			fprintf(pipe, "Sender: %s@%s\n\n", senderaddr, host);
-		else
-			fprintf(pipe, "Sender: %s\n\n", senderaddr);
-	}
+	if (index(maintainer,'@') == NULL)
+	    fprintf(pipe, "Sender: %s@%s\n\n", maintainer, host);
 	else
-		fprintf(pipe, "Sender: %s-request@%s\n\n", list, host);
+	    fprintf(pipe, "Sender: %s\n\n", maintainer);
 
 	/*
 	 * If something was wrong, tell the list maintainer.
@@ -1152,53 +1164,60 @@ getnextissue(filename)
  * lines of up to 128 characters, and fields of up to 1024 characters.
  * The latter may be somewhat optimistic.
  */
-int
-checkhdr(s)
-	register char *s;
+char *
+checkhdr(s, errstr)
+    register char *s;
+    char **errstr;
 {
-	int nparens = 0;
-	int nangles = 0;
-	int linelen = 0, totlen = 0;
-
-	if (strncasecmp(s, "From:", 5) && strncasecmp(s, "To:", 3) &&
-	    strncasecmp(s, "Cc:", 3))
-		return(0);	/* ??? */
-
-	while (*s != '\0') {
-		linelen++;
-		totlen++;
-		switch(*s) {
-			case '\n':
-				linelen = 0;
-				break;
-
-			case '(':
-				nparens++;
-				break;
-
-			case ')':
-				if (nparens <= 0)
-					return(1);
-				nparens--;
-				break;
-
-			case '<':
-				nangles++;
-				break;
-
-			case '>':
-				if (nangles <= 0)
-					return(1);
-				nangles--;
-				break;
-		}
-		s++;
-		if (linelen > 127 || totlen > 1023)
-			return(1);
+    int nparens = 0;
+    int nangles = 0;
+    int linelen = 0, totlen = 0;
+    
+    if (strncasecmp(s, "From:", 5) && strncasecmp(s, "To:", 3) &&
+	strncasecmp(s, "Cc:", 3))
+	return NULL;		/* is NOT From/To/Cc, pass it */
+    
+    while (*s != '\0') {
+	linelen++;
+	totlen++;
+	switch(*s) {
+	case '\n':
+	    linelen = 0;
+	    break;
+	    
+	case '(':
+	    nparens++;
+	    break;
+	    
+	case ')':
+	    if (nparens <= 0)
+		return "less open paren";
+	    nparens--;
+	    break;
+	    
+	case '<':
+	    nangles++;
+	    break;
+	    
+	case '>':
+	    if (nangles <= 0)
+		return "less open angle";
+	    nangles--;
+	    break;
 	}
-	if (nangles == 0 && nparens == 0)
-		return(0);
-	return(1);
+	s++;
+
+	if (totlen > MAXHEADERLEN-1) {/* only check this.. */
+	    static char buf[80];
+	    sprintf(buf, "too long header (len=%d)", totlen);
+	    return buf;
+	}
+
+    }
+    if (nangles == 0 && nparens == 0)
+	return NULL;
+
+    return "angle/bracket mismatch";
 }
 
 

@@ -1,3 +1,30 @@
+Sun Oct 17 15:20:33 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* Patchlevel=7 FIX
+
+Thu Sep  2 11:25:38 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* -o フラグを追加。-o が指定されているか、majordomoの時は sender 
+	  は LIST-request ではなく owner-LIST になる。
+
+Wed Sep  1 16:25:37 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* errorが起こった時は、issue番号を変更しないで、0として処理する。
+
+	* issuenumを定義しないときのサブジェクト定義のバグを修正。
+
+	* maintainerの定義: -f senderがあるなら、そこへ。そうでない場合は、
+	  majordomoの場合は -owner, distributeの場合は -request。
+
+	* chkhdr/badhdrに関する部分を変更、エラーメールの差戻し先を変更し、
+	  かつ、majordomoするときとそうでないときを分けた。(maintainerへ)
+
+	* config.h を追加
+
+Mon Aug  9 13:37:55 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* fix from nao@jaist.ac.jp, use strncasecmp instead of strncmp.
+
 Sat Aug  7 15:46:29 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* Patchlevel=6 FIX

@@ -34,16 +34,13 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <sysexits.h>
+
 #include "util.h"
+#include "config.h"
 
 extern char * malloc();
-
-/* The maximum length of a header line that we can handle, including all
-   continuation lines.
-*/
-#ifndef MAX_HEADER_LEN
-#define MAX_HEADER_LEN	1024
-#endif MAX_HEADER_LEN
+extern logandexit();
 
 /* Run through a message grabbing all of the header lines.  Stop at the
    end of the headers.
@@ -63,7 +60,7 @@ extern char * malloc();
    vector, then the first header line that can NOT fit in the header
    vector is LOST!
 
-   Bug: If a header is longer than MAX_HEADER_LEN, than the rest of it
+   Bug: If a header is longer than MAXHEADERLEN, than the rest of it
    is LOST!
 
    Makes sure that all continuation lines start with a tab.
@@ -75,8 +72,8 @@ int headc;	/* Number of spaces for headers in the headv. */
 char ** headv;	/* Header vector, filled out and returned. */
 FILE * fp;	/* File pointer to the start of the message. */
 {
-	char head_line[MAX_HEADER_LEN+1];/* Current header line. */
-	char line[MAX_HEADER_LEN+1];	/* Current line. */
+	char head_line[MAXHEADERLEN+1];/* Current header line. */
+	char line[MAXHEADERLEN+1];	/* Current line. */
 	register int head_no;		/* Number of headers so far. */
 	register int head_len;		/* Length of the current header. */
 
@@ -86,8 +83,7 @@ FILE * fp;	/* File pointer to the start of the message. */
 	*/
 	if ((headc <= 0) || (headv == (char **)NULL))
 	{
-		fprintf(stderr, "head_parse: Null args.\n");
-		return (-1);
+	    logandexit(EX_UNAVAILABLE, "head_parse: Null args");
 	}
 
 	/* Make sure the header vector is empty.
@@ -106,7 +102,7 @@ FILE * fp;	/* File pointer to the start of the message. */
 	/* Our loop reading lines & dealing with them.  We break out of
 	   this loop if we run out of places to put more header lines
 	   (headv is not long enough), if we get a header line longer
-	   than MAX_HEADER_LEN, if we reach the end of the file, or if
+	   than MAXHEADERLEN, if we reach the end of the file, or if
 	   we reach the end of the header lines.
 	*/
 	while (1)
@@ -114,7 +110,7 @@ FILE * fp;	/* File pointer to the start of the message. */
 
 		/* Read a line.
 		*/
-		if (fgets(line, MAX_HEADER_LEN, fp) == NULL)
+		if (fgets(line, MAXHEADERLEN, fp) == NULL)
 		{
 			/* We are at the end of the headers.
 			*/
@@ -159,12 +155,12 @@ FILE * fp;	/* File pointer to the start of the message. */
 			 * leading character to TAB. Thus, commented out.
 			 * We try to avoid to touch header.
 			 */
-			if (head_len < MAX_HEADER_LEN)
+			if (head_len < MAXHEADERLEN)
 			{
 /*				*line = '\t'; */
 				(void)strncat(&head_line[head_len], line,
-					MAX_HEADER_LEN - head_len);
-				head_len += min(MAX_HEADER_LEN - head_len,
+					MAXHEADERLEN - head_len);
+				head_len += min(MAXHEADERLEN - head_len,
 					strlen(line));
 			}
 			else
@@ -202,9 +198,7 @@ FILE * fp;	/* File pointer to the start of the message. */
 				{
 					/* No more space.
 					*/
-					fprintf(stderr,
-						"head_parse: Out of mem.\n");
-					break;
+				    logandexit(EX_UNAVAILABLE, "insufficient memory in head_parse");
 				}
 
 				/* Copy the header line into this space.
@@ -259,7 +253,7 @@ FILE * fp;	/* File pointer to the start of the message. */
 		{
 			/* No more space.
 			*/
-			fprintf(stderr, "head_parse: Out of mem.\n");
+		    logandexit(EX_UNAVAILABLE, "insufficient memory in head_parse");
 		}
 
 		/* Copy the header line into this space.
@@ -459,7 +453,7 @@ char * header;	/* Header to look for. */
 
 		/* Check this header against our target.
 		*/
-		if (strncmp(*headv, header, strlen(header)) == 0)
+		if (strncasecmp(*headv, header, strlen(header)) == 0)
 		{
 			/* We found it!
 			*/
@@ -529,7 +523,7 @@ char * header;	/* Header to delete. */
 
 		/* Check this header against our target.
 		*/
-		if (strncmp(*headv, header, strlen(header)) == 0)
+		if (strncasecmp(*headv, header, strlen(header)) == 0)
 		{
 
 			/* We found it!  Remove it from the list &
