@@ -49,53 +49,63 @@ char *
 normalizeaddr(buf)
     char *buf;
 {
+    char *xp;
+    char *rp;
     char *p, *beginp, *namep;
     
     namep = NULL;
 
-    /* has address part -- easy
-     */	
-    if ((p = index(buf, '<')) != NULL) {
-	beginp = ++p;
-	if ((p = index(beginp, '>')) != NULL) {
-	    *p = '\0';
-	}
-	else {
-	    logwarn("angle mismatch: %s.\n", buf);
-	    return NULL;
-	}
-	namep = beginp;
-    }
-    else {
-	for (p = buf; *p; p++) {
-	restart:
-	    if (*p == '\\' && *++p != '\0') /* ignore quoting */
-		continue;
-	    if (*p == '(') { /* found parenses.. */
-		beginp = p++;
-		while (*p && ! ( *p == ')' && p[-1] != '\\'))
-		    p++;
-		if (*p != ')') {
-		    logwarn("paren mismatch: %s.\n", buf);
-		    return NULL;
-		}
-		strcpy(beginp, ++p); /* skip these parens.. */
-		p = beginp;
-		goto restart;
+    for (p = buf; ; p++) {
+      restart:
+	if (*p == '\0')
+	    break;
+
+	if (*p == '\\' && *++p != '\0') /* ignore quoting */
+	    continue;
+
+	if (*p == '<') { /* found non-comment angle bracket */
+	    beginp = ++p;
+	    if ((p = index(beginp, '>')) != NULL) {
+		*p = '\0';
 	    }
-	    if (*p == '"') { /* double-quote, just skip */
+	    else {
+		logwarn("angle mismatch: %s.\n", buf);
+		return NULL;
+	    }
+	    return beginp;
+	}
+	
+	if (*p == '(') { /* found parenses.. */
+	    beginp = p++;
+	    while (*p && ! ( *p == ')' && p[-1] != '\\'))
 		p++;
-		while (*p && !(*p == '"' && p[-1] != '\\'))
-		    p++;
-		if (*p != '"') {
-		    logwarn("doublequote mismatch: %s.\n", buf);
-		    return NULL;
-		}
+	    if (*p != ')') {
+		logwarn("paren mismatch: %s.\n", buf);
+		return NULL;
+	    }
+	    strcpy(beginp, ++p); /* skip these parens.. */
+	    p = beginp;
+	    goto restart;
+	}
+
+	if (*p == '"') { /* double-quote, just skip */
+	    p++;
+	    while (*p && !(*p == '"' && p[-1] != '\\'))
+		p++;
+	    if (*p != '"') {
+		logwarn("doublequote mismatch: %s.\n", buf);
+		return NULL;
 	    }
 	}
-	namep = buf;
     }
-    return namep;
+
+    rp = rindex(buf, '\0');
+    if (rp != NULL) {
+	while (rp > buf && *--rp == ' ') /* remove trailing space */
+	    *rp = '\0';
+    }
+
+    return buf;
 }
 
 char *
@@ -156,10 +166,13 @@ main(ac, av)
     int ac;
     char **av;
 {
-    char * p = parserecipfile(av[1]);
-    puts(p);
-
-    puts("\noneliine test:\n");
+#if 0
+    if (ac != 1) {
+	char * p = parserecipfile(av[1]);
+	puts("\noneliine test:\n");
+	puts(p);
+    }
+#endif    
     test("Shigeya Suzuki <shigeya@foretune.co.jp>");
     test("shigeya@foretune.co.jp (Shigeya Suzuki)");
     test("Shigeya \"too busy\" Suzuki <shigeya@foretune.co.jp>");
@@ -168,7 +181,9 @@ main(ac, av)
     test("shigeya@foretune.co.jp (Shigeya 'too busy' Suzuki)");
     test("\":users 1\"@foretune.co.jp");
     test("=?ISO-2022-JP?B?GyRCTmtMWkxQOkgbKEI=?= <shigeya@foretune.co.jp>");
-    test("fwgk4906@mb.infoweb.ne.jp (=?ISO-2022-JP?B?GyRCRiMwZhsoSg==?=  \n       =?ISO-2022-JP?B?GyRCPy0ycBsoSg==?=  <Shinsuke Fujii.>)");
+    test("shigeya@foretune.co.jp (<Shigeya Suzuki>)");
+    test("=?ISO-2022-JP?B?GyRCTmtMWkxQOkgbKEI=?=\n =?ISO-2022-JP?B?GyRCTmtMWkxQOkgbKEI=?= <shigeya@foretune.co.jp>");
+    test("shigeya@foretune.co.jp (=?ISO-2022-JP?B?GyRCTmtMWkxQOkgbKEI=?=\n =?ISO-2022-JP?B?GyRCTmtMWkxQOkgbKEI=?=)");
 }
 
 test(s1)

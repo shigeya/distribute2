@@ -1,5 +1,8 @@
 Thu Oct  2 11:24:54 1997  Shigeya Suzuki  <shigeya@werdna.foretune.co.jp>
 
+	* recipfile.c (normalizeaddr): strip trailing blank. support
+	  (<..>) style comment.
+
 	* patchlevel 23e
 
 	* distribute.c (prepare_arguments): missing spaces between
