@@ -1065,12 +1065,13 @@ acceptcheck(buf, pat)
     
     sprintf(patbuf, "'%s'", pat); /* cheat hack */
     p = strstr(buf, patbuf);
-    len = strlen(patbuf);
     
     if (p == NULL)		/* no match */
 	return 0;		/* fail */
 
-    if ((p[len] == ' ' || p[len] == 0)) {
+    len = strlen(patbuf);
+
+    if ((p[len] == ' ' || p[len] == '\0')) {
 	if (p == buf)		/* at beginning */
 	    return 1;
 	else if (p[-1] == ' ')	/* at middle (require space before it) */
