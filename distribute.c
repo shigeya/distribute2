@@ -1257,7 +1257,7 @@ send_message()
 		originator, dommaintainer);
 	reject = 1;
     } else if (wasrejected) {
-	messageprint(pipe, rejected, dommaintainer);
+	messageprint(pipe, rejected, originator);
 	logwarn("Unsent message: Rejected message from %s. Forwarded to %s",
 		originator, dommaintainer);
 	reject = 1;

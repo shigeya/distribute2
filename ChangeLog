@@ -1,3 +1,10 @@
+1999-05-07  Shigeya Suzuki  <shigeya@malor.foretune.co.jp>
+
+	* message.tmpl: message modified a bit.
+
+	* distribute.c (send_message): originator address should be used
+	  to check message language type.
+
 1999-05-06  Shigeya Suzuki  <shigeya@malor.foretune.co.jp>
 
 	* recipfile.c (parserecipfile): added some sanity check.
