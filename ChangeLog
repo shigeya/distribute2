@@ -1,7 +1,11 @@
-Thu Oct  2 11:24:54 1997  Shigeya Suzuki  <shigeya@werdna.foretune.co.jp>
+Fri Oct  3 11:15:16 1997  Shigeya Suzuki  <shigeya@werdna.foretune.co.jp>
+
+	* patchlevel 24e
 
 	* recipfile.c (normalizeaddr): strip trailing blank. support
 	  (<..>) style comment.
+
+Thu Oct  2 11:24:54 1997  Shigeya Suzuki  <shigeya@werdna.foretune.co.jp>
 
 	* patchlevel 23e
 
