@@ -26,6 +26,9 @@ RCONFIG=-DRELEASESTATE=\"Alpha\"
 OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION \
 	-DSYSLOG_FACILITY=LOG_LOCAL4 -DCCMAIL
 #
+# Uncomment following line if you don't have strsep.
+#
+#STRSEP=strsep.o
 
 #
 # DEFAULT parameters -- YOU SHOULD EDIT THESE
@@ -113,7 +116,7 @@ MISCSRC=	ChangeLog README README.FIRST NEWS \
 KITFILES=	${SRCS} ${HDRS} ${MISCSRC}
 
 LIBOBJS=	memory.o history.o pathutil.o strutil.o header.o logging.o \
-		longstr.o strsep.o
+		longstr.o ${STRSEP}
 
 DOBJS=		distribute.o recipfile.o message.o ${LIBOBJS}
 
