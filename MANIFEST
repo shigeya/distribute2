@@ -1,4 +1,4 @@
-# MANIFEST,v 1.12 1994/02/13 13:46:40 shigeya Exp
+# $Id$
 # Filename		Description
 
 INSTALL.JP		Installation Guide (in Japanese)
@@ -7,13 +7,20 @@ CREDITS			Credits
 ChangeLog		The Change Log (in Japanese/English)
 BugList			Current known bug list
 MANIFEST		THIS file
-Makefile		Makefile
+Makefile.pre		Makefile previously used
 Makefile.pmake		Makefile for pmake
 NEWS			Latest NEWS, or modification
 README			Original README
 README.FIRST		Our README
+README.CONFIGURE	help on configure based version
 ToDo			The "TODO" list (in Japanese)
-config.h		Parameter Configuration File
+acconfig.h		autoconf file
+config.guess		autoconf file
+config.h.in		autoconf file
+config.sub		autoconf file
+configure		configuration script
+configure.in		auto conf description to generate configure
+config.h.pre		Parameter Configuration File previously used
 distribute.1		Man page
 distribute.c		Distribute Main
 archive.c		Archiver Main

@@ -7,38 +7,35 @@
  *
  */
 
-#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4)
-#undef SVR4
-#define SVR4
-#endif
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#ifdef STDC_HEADERS
+# include <stdio.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+# endif
+# ifndef HAVE_STRRCHR
+#  define strrchr rindex
+# endif
+#endif
 #include <sysexits.h>
 #include <errno.h>
-
-#if __STDC__
+  
+#ifdef STDC_HEADERS
 # include <stdlib.h>
 #else
-# include <malloc.h>
+# ifdef HAVE_MALLOC_H
+#  include <malloc.h>
+# endif
 #endif
 
-#include "config.h"
 #include "longstr.h"
 #include "memory.h"
-
-/* external */
-#ifdef SVR4
-char *strchr();
-char *strrchr();
-#define	index	strchr
-#define	rindex	strrchr
-#else
-char *index();
-char *rindex();
-#endif
 
 extern void logandexit();
 extern void logwarn();
@@ -122,7 +119,7 @@ normalizeaddr(buf)
 
 	if (*tp == '<') { /* found non-comment angle bracket */
 	    beginp = ++tp;
-	    if ((tp = index(beginp, '>')) != NULL) {
+	    if ((tp = strchr(beginp, '>')) != NULL) {
 		*tp = '\0';
 		break;
 	    }
@@ -148,7 +145,7 @@ normalizeaddr(buf)
     }
 
     /* remove trailing space */
-    rp = rindex(beginp, '\0');
+    rp = strrchr(beginp, '\0');
     if (rp != NULL) {
 	while (rp > beginp && *--rp == ' ')
 	    *rp = '\0';
@@ -185,9 +182,9 @@ parserecipfile(filename, errormode)
 
     while (fgets(buf, sizeof buf, recipf) != NULL) {
 	char *p;
-	if ((p = index(buf, '\n')) != NULL)/* remove trailing LF */
+	if ((p = strchr(buf, '\n')) != NULL)/* remove trailing LF */
 	    *p = '\0';
-	if ((p = index(buf, '#')) != NULL) /* remove comments, if exists */
+	if ((p = strchr(buf, '#')) != NULL) /* remove comments, if exists */
 	    *p = '\0';
 
 	if (buf[0] != '\0') {	/* if it is *NOT* newline.. */

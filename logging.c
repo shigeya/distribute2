@@ -6,6 +6,8 @@
  * Copyright(c)1993-1997 Shigeya Suzuki
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <sysexits.h>
 #include <stdlib.h>
@@ -21,12 +23,14 @@
 
 #include "cdefs.h"
 
-#ifdef TEST
-#undef SYSLOG
-#endif
-
-#ifdef SYSLOG
-# include <syslog.h>
+#ifdef USE_SYSLOG
+# ifdef HAVE_SYSLOG_H
+#  include <syslog.h>
+# endif
+#else
+# define   LOG_ERR	1
+# define   LOG_WARNING	2
+# define   LOG_INFO	3
 #endif
 
 #define LOGBUFSIZE	1024
@@ -51,7 +55,7 @@ init_log(tag)
     extern FILE *debuglog;
 #endif
 
-#ifdef SYSLOG	
+#ifdef USE_SYSLOG	
     openlog(tag, LOG_PID, SYSLOG_FACILITY);
 #endif
 #ifdef DEBUGLOG
@@ -105,7 +109,7 @@ logerror_buf(pri, prefix)
 	}
     }
 #endif
-#ifdef SYSLOG
+#ifdef USE_SYSLOG
     syslog(pri, logbuf);
 #endif
 }

@@ -21,40 +21,50 @@
  *	Youichirou Koga		<y-koga@isoternet.org>
  */
 
-#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4) || defined(hpux)
-#undef SVR4
-#define SVR4
-#endif
-
+#include <config.h>
+  
 #include <stdio.h>
-#include <stdlib.h>
 #include <ctype.h>
-#include <string.h>
-#ifdef SVR4
-#include <netdb.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sysexits.h>
-#include <sys/systeminfo.h>
+#ifdef STDC_HEADERS
+# include <stdio.h>
 #else
-#include <sysexits.h>
+# ifndef HAVE_STRCHR
+#  define strchr index
+# endif
+# ifndef HAVE_STRRCHR
+#  define strrchr rindex
+# endif
 #endif
 #include <sys/types.h>
-#include <sys/file.h>
-#include <sys/param.h>
-#include <unistd.h>
+#ifdef USE_SYS_PARAM_H
+# include <sys/param.h>
+#endif
+#ifdef USE_NETDB_H
+# include <netdb.h>
+#endif
+#include <sys/stat.h>
+#ifdef HAVE_FCNTL_H
+# include <fcntl.h>
+#endif
+#include "sysexits.h"
+#include <sysexits.h>
+#include <sys/types.h>
+#ifdef HAVE_SYS_FILE_H
+# include <sys/file.h>
+#endif
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 #include <string.h>
-
-#ifdef SVR4
-#define	index	strchr
+  
+#ifdef HAVE_PATHS_H
+# include <paths.h>
 #endif
 
-#if defined(__bsdi__)		/* may be wrong -- we need to use NET/2 def.*/
-# include <paths.h>		/* for sendmail path */
-#endif
-
-#ifdef SYSLOG
-# include <syslog.h>
+#ifdef USE_SYSLOG
+# ifdef HAVE_SYSLOG_H
+#  include <syslog.h>
+# endif
 #endif
 
 #include "patchlevel.h"		/* version identifier */
@@ -174,7 +184,7 @@ FILE *noisef = NULL;
 
 int errorsto = 0;	/* append Erros-To? or not */
 
-#ifdef ISSUE
+#ifdef USE_ISSUE
 int issuenum = -1;	/* issue number  */
 #endif
 
@@ -182,7 +192,7 @@ int issuenum = -1;	/* issue number  */
 int addversion = 1;	/* Add X-Distribute: header or not (default TRUE) */
 #endif
 
-#ifdef USEMIMEKIT
+#ifdef USE_MIMEKIT
 int usemimekit = 1;	/* use mimekit (default*) */
 #endif
 
@@ -191,6 +201,7 @@ int wasadmin = 0;	/* was a noise message */
 int wasrejected = 0;	/* rejected message */
 int badnewsheader = 0;	/* incoming article is not likely news2mail article */
 int badoriginator = 0;  /* origintor address invalid */
+int ccmail_error_message = 0;	/* it's ccmail error message */
 int zaprecv = 0;	/* zap received lines */
 int lessnoise = 0;	/* run ``please add/delete me'' filter */
 int forcereplyto = 0;	/* ignore reply to */
@@ -220,10 +231,6 @@ char *rejectfile = NULL;
 char *headerfile = NULL;
 char *footerfile = NULL;
 char *archivedir = NULL;
-
-#ifdef CCMAIL
-static int ccmail_error_message = 0;
-#endif
 
 
 /* Macros
@@ -488,10 +495,10 @@ usage()
     fprintf(stderr, "{-M list | -N list | -h host -l list}\n");
     fprintf(stderr, "\t[-f senderaddr] [-H headerfile] [-F footerfile] [-n newsfrom]\n");
     fprintf(stderr, "\t[-r replytoaddr]");
-#ifdef ISSUE
+#ifdef USE_ISSUE
     fprintf(stderr, " [-I issuenumfile]");
 #endif
-#ifdef SUBJALIAS
+#ifdef USE_SUBJALIAS
     fprintf(stderr, " [-a aliasid] [-B brace_lr]");
 #endif
     fprintf(stderr, "\n");
@@ -517,13 +524,16 @@ printversion()
 #ifdef SYSLOG
     fprintf(stderr, " [SYSLOG]");
 #endif
-#ifdef ISSUE
+#ifdef USE_ISSUE
     fprintf(stderr, " [ISSUE]");
 #endif
-#ifdef MSC
+#ifdef USE_MSC
     fprintf(stderr, " [MSC]");
 #endif
-#ifdef SUBJALIAS
+#ifdef USE_MIMEKIT
+    fprintf(stderr, " [MIMEKIT]");
+#endif
+#ifdef USE_SUBJALIAS
     fprintf(stderr, " [SUBJALIAS]");
 #endif
 #ifdef ADDVERSION
@@ -672,7 +682,7 @@ parse_options(argc, argv)
 		sendmailargs = strspappend(sendmailargs, optarg);
 	    break;
 	    
-#ifdef USEMIMEKIT
+#ifdef USE_MIMEKIT
 	case 'w':
  	    usemimekit = !usemimekit;
 	    break;
@@ -818,7 +828,7 @@ init_distribute()
 #ifdef DEF_DOMAINNAME
     host = DEF_DOMAINNAME;
 #else
-#ifdef SVR4
+#ifdef HAVE_SYS5_PTY
     sysinfo(SI_HOSTNAME, myhostname, (long) sizeof(myhostname));
 #else
     gethostname(myhostname, sizeof(myhostname));
@@ -989,7 +999,7 @@ parse_and_clean_header(file)
 	    free(header);
     }
 
-    if (index(maintainer, '@') == NULL)
+    if (strchr(maintainer, '@') == NULL)
 	snprintf(dommaintainer, sizeof(dommaintainer),
 		 "%s@%s", maintainer, host);
     else
@@ -1027,7 +1037,7 @@ prepare_arguments(argc, argv)
 	rejectbuf = parserecipfile(rejectfile, 0);
     }
 
-#ifdef CCMAIL
+#ifdef USE_CCMAIL
     if (strcmp(subject, "cc:Mail SMTPLINK Undeliverable Message") == 0
 	|| strcmp(subject, "Message not deliverable") == 0
 	|| strcmp(subject, "Unsent Message Returned to Sender") == 0
@@ -1210,7 +1220,7 @@ acceptcheck(buf, pat)
     return 0;
 }
 
-#ifdef USEMIMEKIT
+#ifdef USE_MIMEKIT
 /*
  * MIME_makeSubj -- TBW
  */
@@ -1243,14 +1253,14 @@ MIME_makeSubj(s)
 /* AddAliasIDToHeader -- This function format then insert X-SOMETHING style
  * identifier in header.
  */
-#if defined(ISSUE)
+#ifdef USE_ISSUE
 void
 AddAliasIDToHeader(pipe, aliasid, issuenum)
     FILE *pipe;
     char *aliasid;
     int issuenum;
 {
-#ifndef MSC			/* NON-MSC case */
+#ifndef USE_MSC			/* NON-MSC case */
     if (aliasid != NULL) {
 	fprintf(pipe, "X-Sequence: %s %d\n",aliasid,issuenum);
     }
@@ -1258,7 +1268,7 @@ AddAliasIDToHeader(pipe, aliasid, issuenum)
 	fprintf(pipe, "X-Sequence: %d\n",issuenum);
     }
 #endif
-#ifdef MSC
+#ifdef USE_MSC
     if (aliasid != NULL) {
 	fprintf(pipe, "X-Ml-Count: %05d\n",issuenum);
 	fprintf(pipe, "X-Ml-Name: %s\n",aliasid);
@@ -1274,7 +1284,7 @@ AddAliasIDToHeader(pipe, aliasid, issuenum)
 /* AddAliasIDToSubject -- This function formats Subject: line using original
  * subject, alias ID and issue number (if needed)
  */
-#if defined(ISSUE)
+#ifdef USE_ISSUE
 void
 AddAliasIDToSubject(subjectbuf, subjectbuf_size, subject, aliasid, issuenum)
     char *subjectbuf;
@@ -1290,12 +1300,12 @@ AddAliasIDToSubject(subjectbuf, subjectbuf_size, subject, aliasid, issuenum)
 	char *openfmt, *subjfmt;
 	char seprchr;
 	
-#ifndef MSC
+#ifndef USE_MSC
 	openfmt = "%c%s";
 	seprchr = ' ';
 	subjfmt = "%c%s %d%c %s";
 #endif
-#ifdef MSC
+#ifdef USE_MSC
 	openfmt = "%c%s";
 	seprchr = ',';
 	subjfmt = "%c%s,%05d%c %s";
@@ -1429,7 +1439,7 @@ send_message()
 	reject = 1;
     }
 
-#ifdef CCMAIL
+#ifdef USE_CCMAIL
     if (ccmail_error_message) {
 	messageprint(pipe, ccmailerr, originator);
 	logwarn("Unsent message: cc:Mail SMTPLINK Undeliverable Message from %s", originator);
@@ -1437,7 +1447,7 @@ send_message()
     }
 #endif
 
-#ifdef ISSUE
+#ifdef USE_ISSUE
     if (reject) {
 	issuenum = 0;
     }
@@ -1468,7 +1478,7 @@ send_message()
 	    free(originatorreplyto); /* sanity */
 	}
 	else {
-	    if (index(replyto,'@') == NULL)
+	    if (strchr(replyto,'@') == NULL)
 		fprintf(pipe, "Reply-To: %s@%s\n", replyto, host);
 	    else
 		fprintf(pipe, "Reply-To: %s\n", replyto);
@@ -1494,26 +1504,26 @@ send_message()
     }	
 #endif	
     
-#if defined(ISSUE)
+#ifdef USE_ISSUE
     if (issuenum >= 0) {
 	AddAliasIDToHeader(pipe, aliasid, issuenum);
     }
 #endif
     
-#ifdef USEMIMEKIT
+#ifdef USE_MIMEKIT
     if (usemimekit) {
 	strncpy(subject, MIME_makeSubj(subject), sizeof(subject)-1);
     }
 #endif
     
-#if defined(SUBJALIAS)
+#ifdef USE_SUBJALIAS
     AddAliasIDToSubject(subjectbuf, sizeof(subjectbuf),
 			subject, aliasid, issuenum);
 #else
     strncpy(subjectbuf, subject, sizeof(subjectbuf)-1);
 #endif
 
-#ifdef USEMIMEKIT
+#ifdef USE_MIMEKIT
     if (usemimekit) {
 	strncpy(subjectbuf, MIME_makeSubj(subjectbuf), sizeof(subjectbuf)-1);
     }
@@ -1690,7 +1700,7 @@ cleanheader(headc, headv)
 /* getnextissue -- returns next available issue number
  * do exclusive lock also.
  */
-#ifdef ISSUE
+#ifdef USE_ISSUE
 int
 getnextissue(filename)
     char *filename;
@@ -1709,14 +1719,16 @@ getnextissue(filename)
 	close(fd);
 	return 1;
     }
-#ifdef SVR4
-    lockf(fd, F_LOCK, 0);
-#else
+#ifdef HAVE_FLOCK
     flock(fd, LOCK_EX);
+#else
+# ifdef HAVE_LOCKF
+    lockf(fd, F_LOCK, 0);
+# endif
 #endif
     read(fd, buf, sizeof(buf));
 
-    if ((p = index(buf,'\n')) != NULL) {	/* failsafe */
+    if ((p = strchr(buf,'\n')) != NULL) {	/* failsafe */
 	*p = '\0';
 	issue = atoi(buf);
 	issue++;
@@ -1728,10 +1740,12 @@ getnextissue(filename)
     lseek(fd, 0L, L_SET);
     sprintf(buf, "%d\n", issue);
     write(fd,buf,strlen(buf));
-#ifdef SVR4
-    lockf(fd, F_ULOCK, 0);
-#else
+#ifdef HAVE_FLOCK
     flock(fd, LOCK_UN);
+#else
+# ifdef HAVE_LOCKF
+    lockf(fd, F_ULOCK, 0);
+# endif
 #endif
     close(fd);
     return issue;

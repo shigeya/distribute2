@@ -1,0 +1,125 @@
+/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Define to `unsigned' if <sys/types.h> doesn't define.  */
+#undef size_t
+
+/* Define if you have the ANSI C header files.  */
+#undef STDC_HEADERS
+
+/* Define if you want a debugging version. */
+#undef DEBUG
+
+/* Define if use cc:Mail bounce reject code */
+#undef USE_CCMAIL
+
+/* Define if use syslog for logging */
+#undef USE_SYSLOG
+
+/* Define if use syslog for logging */
+#undef SYSLOG_FACILITY
+
+/* Define if you have TEE */
+#undef TEE_COMMAND
+
+/* Define if do an extensive debug logging */
+#undef DEBUGLOG
+
+/* we assume subject will no longer than this length */
+#define MAXSUBJLEN 4096
+
+/* we assume message id is no longer than this */
+#define MAXMESSAGEIDLEN 512
+
+/* number of headers allowed */
+#define MAXHEADERLINE 1000
+
+/* The maximum length of a header line that we can handle, including all continuation lines.  */
+#define MAXHEADERLEN 16384
+
+/* The maximum length of a address. */
+#define MAXADDRLEN 1024
+
+/* Define it to point to sendmail. */
+#undef _PATH_SENDMAIL
+
+#define DEF_SEQ_PATH  "/usr/lib/mail-list"
+
+#define DEF_RECIPIENT_PATH "/usr/lib/mail-list"
+
+#define DEF_ARCHIVE_PATH       "/usr/spool/mail-list"
+
+#define TEE_COMMAND  "/usr/bin/tee"
+
+#define DEF_MAJORDOMO_RECIPIENT_PATH "/usr/lib/mail-list/majordomo/lists"
+
+#define DEF_SEQ_SUFFIX  ".seq"
+
+#define DEF_RECIPIENT_SUFFIX ".rec"
+
+#define DEF_ACCEPT_SUFFIX ".acc"
+
+#define DEF_REJECT_SUFFIX ".rej"
+
+#define DEF_INDEX_NAME  "INDEX"
+
+#define DEF_OPENALIAS_CHAR '('
+
+#define DEF_CLOSEALIAS_CHAR ')'
+
+#define ALIAS_SPACE_CHAR '-'
+
+/* Define if include X-Sequence sequence numbering (use with SUBJALIAS) */
+#undef USE_ISSUE
+
+/* Define if put in subject alias like "(MailingListName 1)" (use with ISSUE) */
+#undef USE_SUBJALIAS
+
+#undef DEF_DOMAINNAME
+
+#undef USE_MSC
+
+#undef USE_SYS_PARAM_H
+
+#undef USE_NETDB_H
+
+/* Define if you have the flock function.  */
+#undef HAVE_FLOCK
+
+/* Define if you have the gethostname function.  */
+#undef HAVE_GETHOSTNAME
+
+/* Define if you have the lockf function.  */
+#undef HAVE_LOCKF
+
+/* Define if you have the memcpy function.  */
+#undef HAVE_MEMCPY
+
+/* Define if you have the strchr function.  */
+#undef HAVE_STRCHR
+
+/* Define if you have the strrchr function.  */
+#undef HAVE_STRRCHR
+
+/* Define if you have the strspn function.  */
+#undef HAVE_STRSPN
+
+/* Define if you have the strstr function.  */
+#undef HAVE_STRSTR
+
+/* Define if you have the <fcntl.h> header file.  */
+#undef HAVE_FCNTL_H
+
+/* Define if you have the <malloc.h> header file.  */
+#undef HAVE_MALLOC_H
+
+/* Define if you have the <paths.h> header file.  */
+#undef HAVE_PATHS_H
+
+/* Define if you have the <sys/file.h> header file.  */
+#undef HAVE_SYS_FILE_H
+
+/* Define if you have the <syslog.h> header file.  */
+#undef HAVE_SYSLOG_H
+
+/* Define if you have the <unistd.h> header file.  */
+#undef HAVE_UNISTD_H

@@ -31,6 +31,9 @@
 			Delete and return a pointer to the indicated
 			header in the header vector.
 */
+
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>

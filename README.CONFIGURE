@@ -1,0 +1,51 @@
+distribute with configure
+by Jun-ichiro itojun Itoh <itojun@itojun.org>
+Tue May  6 23:02:50 JST 1997
+
+	Umm, there are too many choices...
+
+options to "configure" script
+	For common options try "configure --help".
+
+	--enable-debug		Compile with -g option. (for debugger tracing)
+	--enable-debuglog	Leave debug log into /tmp/distribute.log.
+	--enable-ccmail		Compile in cc:Mail bounce mail rejection code.
+	--enable-msc		MSC style mailing list headers.
+				(MSC stands for some mailing list, but I forgot)
+	--enable-syslog		Enable syslog logging, to LOG_LOCAL4.
+	--enable-syslog=LOG_FOOBAA
+				Enable syslog logging, to some log facility.
+
+options set by "env" command, with default values
+	By invoking like below, you can alter the default values.
+	Careful quoting doublequotes!
+	% env DEF_SEQ_PATH=\"/usr/local/lib/mail-list\" ./configure
+
+	variable			default
+	---				---
+	DEF_SEQ_PATH			"/usr/lib/mail-list"
+	DEF_RECIPIENT_PATH		"/usr/lib/mail-list"
+	DEF_ARCHIVE_PATH		"/var/spool/mail-list"
+	DEF_MAJORDOMO_RECIPIENT_PATH	"/usr/lib/mail-list/majordomo/lists"
+	DEF_SEQ_SUFFIX			".seq"
+	DEF_RECIPIENT_SUFFIX		".rec"
+	DEF_ACCEPT_SUFFIX		".acc"
+	DEF_INDEX_NAME			"INDEX
+
+options set by "env" command, without default values
+	The following values can be set via "env" command, but has no default
+	value.
+
+	variable
+	---
+	DEF_DOMAINNAME
+
+settings not modifyable right now
+	variable			default
+	---				---
+	ALIAS_SPACE_CHAR		'-'
+	MAXSUBJLEN			4096
+	MAXMESSAGEIDLEN			512
+	MAXHEADERLINE			1000
+	MAXHEADERLEN			16384
+	MAXADDRLEN			1024

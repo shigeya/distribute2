@@ -6,27 +6,27 @@
  * Copyright(c)1993,1994 Shigeya Suzuki
  */
 
-#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4)
-#undef SVR4
-#define SVR4
-#endif
+#include <config.h>
 
 #include <stdio.h>
 #include <sysexits.h>
 #include <string.h>
+#ifdef STDC_HEADERS
+# include <stdio.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+# endif
+# ifndef HAVE_STRRCHR
+#  define strrchr rindex
+# endif
+#endif
 #include <memory.h>
 #include <ctype.h>
-#include "config.h"
+
 #include "memory.h"
 #include "logging.h"
 #include "pathutil.h"
-
-#ifdef SVR4
-extern char *strrchr();
-#define	rindex	strrchr
-#else
-extern char *rindex();
-#endif
 
 /* make default path
  */
@@ -55,7 +55,7 @@ adddefaultpath(defpath, name, suffix, lower)
     buf = xmalloc(len);
     strcpy(buf, defpath);
 
-    p = rindex(buf, '\0');
+    p = strrchr(buf, '\0');
 
     if (p == NULL) { 		/* must not happen */
 	programerror();
@@ -65,7 +65,7 @@ adddefaultpath(defpath, name, suffix, lower)
 	strcat(buf, "/");
 
     if (lower) {
-	p = rindex(buf, '\0');
+	p = strrchr(buf, '\0');
 	strcat(buf, name);
 	for (; *p; p++)		/* make the string lowercase */
 	    if (isupper(*p))

@@ -6,13 +6,14 @@
  * Copyright(c)1993 Shigeya Suzuki
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sysexits.h>
 #include <memory.h>
 
-#ifdef STRSTR_MISSING
-
+#ifndef HAVE_STRSTR
 /* Find the first occurrence of find in s.
  */
 char *
@@ -34,8 +35,38 @@ strstr(s, find)
 	}
 	return ((char *)s);
 }
+#endif /*HAVE_STRSTR*/
 
-#endif
+#ifndef HAVE_STRSPN
+size_t
+strspn(s, cs)
+	const char *s;
+	const char *cs;
+{
+	const char *p;
+	const char *q;
+	size_t cnt;
+	int matched;
+
+	p = s;
+	while (*p) {
+		q = cs;
+		matched = 0;
+		while (*q) {
+			if (*p == *q) {
+				matched++;
+				break;
+			}
+			q++;
+		}
+		if (!matched)
+			return p - s;
+		p++;
+	}
+
+	return p - s;
+}
+#endif /*HAVE_STRSPN*/
 
 char *
 strcpycut(d, s, n)

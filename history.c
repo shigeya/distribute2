@@ -12,17 +12,17 @@
  * (3) Does not waste memory.
  */
 
-#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4) || defined(hpux)
-#undef SVR4
-#define SVR4
-#endif
+#include <config.h>
 
 #include <sys/types.h>
-#include <sys/file.h>
+#ifdef HAVE_SYS_FILE_H
+# include <sys/file.h>
+#endif
 #include <sysexits.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #include "memory.h"
 #include "history.h"
@@ -49,10 +49,12 @@ openhistory(name, mode)
     }
 
     fd = fileno(fp);
-#ifdef SVR4
-    lockf(fd, F_LOCK, 0);	/* lock the file */
-#else
+#ifdef HAVE_FLOCK
     flock(fd, LOCK_EX);		/* lock the file */
+#else
+# ifdef HAVE_LOCKF
+    lockf(fd, F_LOCK, 0);	/* lock the file */
+# endif
 #endif
     filename = strsave(name);
     file = fp;
@@ -63,10 +65,12 @@ void
 closehistory()
 {
     if (file != NULL) {
-#ifdef SVR4
-	lockf(file_fd, F_ULOCK, 0);
-#else
+#ifdef HAVE_FLOCK
 	flock(file_fd, LOCK_UN);
+#else
+# ifdef HAVE_LOCKF
+	lockf(file_fd, F_ULOCK, 0);
+# endif
 #endif
 	fclose(file);
 	file = NULL;
@@ -258,5 +262,4 @@ main()
 
     closehistory();
 }
-
 #endif

@@ -1,0 +1,174 @@
+# Makefile,v 1.29 1994/08/05 11:49:26 shigeya Exp
+# Makefile for distribute
+
+@SET_MAKE@
+
+#
+# See CREDITS for credit and COPYRIGHT for copyright notice.
+#
+RCONFIG=
+
+srcdir=	@srcdir@
+CC=	@CC@
+OPTFLAG=@OPTFLAG@
+CFLAGS=	-c $(OPTFLAG) @CFLAGS@ -I. -I$(srcdir) @CPPFLAGS@ $(RCONFIG)
+LDFLAGS=@LDFLAGS@
+LIBOBJS=@LIBOBJS@
+
+INSTALL=@INSTALL@
+INSTALL_DATA=@INSTALL_DATA@
+INSTALL_PROGRAM=@INSTALL_PROGRAM@
+
+#
+# Configuration options:
+#
+# Automagical/parameter support with configure:
+#	USE_SYSLOG		include syslog based logging
+# 	SYSLOG_FACILITY=n	-- value for syslogd's facility value
+#				   defaulted to LOG_LOCAL4
+#	DEBUGLOG		Debug level logging (in /tmp/distribute.log)
+#	CCMAIL			cc:Mail bounce reject
+#	MSC			MSC Style Subject
+#	MIMEKIT			use MIMEKIT
+#	REPORTADDR=n		set additional report address
+#	DEBUG			(unused)
+# On by default, since the package won't work without them.
+#	ISSUE			include X-Sequence sequence numbering
+#	SUBJALIAS		put in subject alias like "(MailingListName 1)"
+# Set via "env", with default values
+#	ADDVERSION		Add X-Distribute: Version SOMETHING to header
+#	USESUID			include SUID support code
+#	DEF_SEQ_PATH
+#	DEF_RECIPIENT_PATH
+#	DEF_ARCHIVE_PATH
+#	DEF_MAJORDOMO_RECIPIENT_PATH
+#	DEF_SEQ_SUFFIX
+#	DEF_RECIPIENT_SUFFIX
+#	DEF_ACCEPT_SUFFIX
+#	DEF_INDEX_NAME
+# Set via "env", with no default value
+#	DEF_DOMAINNAME
+# No support at all
+#	other options
+#
+
+DESTDIR=
+
+MIMELIBOPT=@dis_cv_mimelib_opt@
+PERL=	@dis_cv_path_perl@
+
+WHERE=	/usr/lib
+MANDIR=	/usr/man
+MANSEC=	1
+
+# Install as
+OWNER=	daemon
+GROUP=	daemon
+
+# C source files
+OTHERSRC=	header.c history.c logging.c \
+		longstr.c memory.c message.c recipfile.c pathutil.c \
+		strutil.c
+
+DISTSRCS= distribute.c ${OTHERSRC}
+
+ARCHIVESRCS= archive.c ${OTHERSRC}
+
+SRCS= archive.c distribute.c header.c history.c logging.c \
+		longstr.c memory.c message.c pathutil.c recipfile.c \
+		strutil.c
+
+TEST=	testlongstr.c
+
+HDRS= cdefs.h config.h debuglog.h header.h history.h longstr.h \
+		memory.h message.h mestab.h patchlevel.h pathutil.h \
+		recipfile.h strutil.h util.h
+MISCSRC=	ChangeLog README README.FIRST NEWS \
+		distribute.1 Makefile Makefile.pmake \
+		resultcheck.pl tmpl2c.pl message.tmpl
+KITFILES=	${SRCS} ${HDRS} ${MISCSRC}
+
+LIBOBJS=	memory.o history.o pathutil.o strutil.o header.o logging.o \
+		longstr.o
+
+DOBJS=		distribute.o recipfile.o message.o ${LIBOBJS}
+
+AOBJS=		archive.o ${LIBOBJS}
+
+LIBS=		${MIMELIBOPT}
+
+all: xdistribute xarchive
+
+xdistribute: ${DOBJS}
+	${CC} ${LDFLAGS} -o xdistribute ${DOBJS} ${LIBS}
+	@size xdistribute
+
+xarchive: ${AOBJS}
+	${CC} ${LDFLAGS} -o xarchive ${AOBJS}
+	@size xarchive
+
+install: xdistribute distribute.1 xarchive
+	$(INSTALL_PROGRAM) -s -o ${OWNER} -g ${GROUP} -m 511 xdistribute \
+		${DESTDIR}${WHERE}/distribute
+	$(INSTALL_PROGRAM) -s -o ${OWNER} -g ${GROUP} -m 511 xarchive \
+		${DESTDIR}${WHERE}/archive
+	$(INSTALL_PROGRAM) -m 444 distribute.1 \
+		${DESTDIR}${MANDIR}/man${MANSEC}/distribute.${MANSEC}
+
+testinst: xdistribute xarchive
+	$(INSTALL_PROGRAM) -s -o root -g wheel -m 511 distribute test
+	$(INSTALL_PROGRAM) -s -o root -g wheel -m 511 archive test
+
+clean:
+	rm -f a.out *.core core ${DOBJS} ${AOBJS} xdistribute xarchive mestab.h
+
+distclean: clean
+	rm -f config.cache config.h config.log config.status
+	rm -f Makefile
+
+depend: mestab.h
+	mkmf -CSXW
+
+kit:
+	shar ${KITFILES} >distribute.kit
+
+# test suite
+test.x:	testlongstr.o longstr.o
+	cc -g -o test.x testlongstr.o longstr.o
+
+test:	test.x
+	./test.x | ${PERL} resultcheck.pl
+
+lint: distribute.lint archive.lint
+distribute.lint: ${DISTSRCS} Makefile
+	-lint ${OPTIONS} ${DISTSRCS} >$@
+archive.lint: ${ARCHIVESRCS} Makefile
+	-lint ${OPTIONS} ${DISTSRCS} >$@
+
+prtest: recipfile.c
+	cc -DTEST -g -o prtest recipfile.c longstr.o
+
+htest: history.c memory.o logging.o history.h
+	cc -DTEST -g -o htest history.c memory.o logging.o
+
+utest: uidlib.c
+	cc -DTEST -g -o utest uidlib.c
+
+mestab.h: message.tmpl tmpl2c.pl
+	${PERL} tmpl2c.pl <message.tmpl >mestab.h
+
+###
+archive.o: archive.c patchlevel.h config.h memory.h cdefs.h history.h \
+		pathutil.h header.h
+distribute.o: distribute.c patchlevel.h config.h longstr.h cdefs.h memory.h \
+		message.h recipfile.h mestab.h strutil.h pathutil.h \
+		history.h header.h
+header.o: header.c util.h config.h memory.h cdefs.h
+history.o: history.c memory.h cdefs.h history.h
+logging.o: logging.c
+longstr.o: longstr.c longstr.h cdefs.h
+memory.o: memory.c
+message.o: message.c message.h cdefs.h longstr.h
+pathutil.o: pathutil.c config.h memory.h cdefs.h pathutil.h
+recipfile.o: recipfile.c longstr.h cdefs.h
+strutil.o: strutil.c

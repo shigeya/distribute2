@@ -6,10 +6,7 @@
  *	Copyright(c)1993 Shigeya Suzuki
  */
 
-#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4)
-#undef SVR4
-#define SVR4
-#endif
+#include <config.h>
 
 #include <stdio.h>
 #include <ctype.h>
@@ -111,11 +108,7 @@ ls_append(p, str, len)
 	ls_grow(p, len+1);
     }
 
-#ifdef SVR4
     memcpy(p->ls_ptr, str, len);
-#else
-    bcopy(str, p->ls_ptr, len);
-#endif
     
     p->ls_ptr += len;
     p->ls_used += len;

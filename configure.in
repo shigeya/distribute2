@@ -1,0 +1,199 @@
+dnl $Id$
+dnl Process this file with autoconf to produce a configure script.
+dnl initially created by itojun@itojun.org
+dnl modified to latest by shigeya@foretune.co.jp
+AC_INIT(archive.c)
+AC_CONFIG_HEADER(config.h)
+
+dnl Options handling.
+AC_MSG_CHECKING(if --enable-debug option specified)
+AC_ARG_ENABLE(debug,
+	[  --enable-debug          Build a debugging version.],
+	[dis_cv_debug="yes"], [dis_cv_debug="no"])
+if test "$dis_cv_debug" = yes; then
+	AC_DEFINE(DEBUG)
+	OPTFLAG=${OPTFLAG-"-g"}
+fi
+AC_MSG_RESULT($dis_cv_debug)
+
+AC_MSG_CHECKING(if --enable-debuglog option specified)
+AC_ARG_ENABLE(debuglog,
+	[  --enable-debuglog       Build a extensive debug-logging version.],
+	[dis_cv_debuglog="yes"], [dis_cv_debuglog="no"])
+if test "$dis_cv_debuglog" = yes; then
+	AC_DEFINE(DEBUGLOG)
+fi
+AC_MSG_RESULT($dis_cv_debuglog)
+
+AC_MSG_CHECKING(if --enable-ccmail option specified)
+AC_ARG_ENABLE(debuglog,
+	[  --enable-ccmail         Build with cc:Mail bounce reject code.],
+	[dis_cv_ccmail="yes"], [dis_cv_ccmail="no"])
+if test "$dis_cv_ccmail" = yes; then
+	AC_DEFINE(USE_CCMAIL)
+fi
+AC_MSG_RESULT($dis_cv_ccmail)
+
+AC_MSG_CHECKING(if --enable-syslog option specified)
+AC_ARG_ENABLE(syslog,
+	[  --enable-syslog         Build a syslog-logging version.],
+	[dis_cv_syslog="yes"; dis_cv_sysloglevel=$enableval],
+	[dis_cv_syslog="no"])
+if test "$dis_cv_syslog" = yes; then
+	AC_DEFINE(USE_SYSLOG)
+	if test "$dis_cv_sysloglevel" = yes; then
+		AC_DEFINE_UNQUOTED(SYSLOG_FACILITY, [LOG_LOCAL4])
+	else
+		AC_DEFINE_UNQUOTED(SYSLOG_FACILITY, $dis_cv_sysloglevel)
+	fi
+fi
+AC_MSG_RESULT($dis_cv_syslog)
+
+AC_MSG_CHECKING(if --enable-msc option specified)
+AC_ARG_ENABLE(msc,
+	[  --enable-msc            Build a MSC version.],
+	[dis_cv_msc="yes"], [dis_cv_msc="no"])
+if test "$dis_cv_msc" = yes; then
+	AC_DEFINE(USE_MSC)
+	AC_DEFINE_UNQUOTED(DEF_OPENALIAS_CHAR, ['\133'])
+	AC_DEFINE_UNQUOTED(DEF_CLOSEALIAS_CHAR, ['\135'])
+else
+	AC_DEFINE_UNQUOTED(DEF_OPENALIAS_CHAR, ['('])
+	AC_DEFINE_UNQUOTED(DEF_CLOSEALIAS_CHAR, [')'])
+fi
+AC_MSG_RESULT($dis_cv_msc)
+
+dnl Default settings.  Modifyable with "env" commmand. (careful with quoting!)
+AC_DEFINE_UNQUOTED(DEF_SEQ_PATH, ${DEF_SEQ_PATH-"/usr/lib/mail-list"})
+AC_DEFINE_UNQUOTED(DEF_RECIPIENT_PATH,
+	${DEF_RECIPIENT_PATH-"/usr/lib/mail-list"})
+AC_DEFINE_UNQUOTED(DEF_ARCHIVE_PATH, ${DEF_ARCHIVE_PATH-"/var/spool/mail-list"})
+AC_DEFINE_UNQUOTED(DEF_MAJORDOMO_RECIPIENT_PATH,
+	${DEF_MAJORDOMO_RECIPIENT_PATH-"/usr/lib/mail-list/majordomo/lists"})
+AC_DEFINE_UNQUOTED(DEF_SEQ_SUFFIX, ${DEF_SEQ_SUFFIX-".seq"})
+AC_DEFINE_UNQUOTED(DEF_RECIPIENT_SUFFIX, ${DEF_RECIPIENT_SUFFIX-".rec"})
+AC_DEFINE_UNQUOTED(DEF_ACCEPT_SUFFIX, ${DEF_ACCEPT_SUFFIX-".acc"})
+AC_DEFINE_UNQUOTED(DEF_REJECT_SUFFIX, ${DEF_REJECT_SUFFIX-".rej"})
+AC_DEFINE_UNQUOTED(DEF_INDEX_NAME, ${DEF_INDEX_NAME-"INDEX"})
+
+dnl Optional settings.
+if test "x$DEF_DOMAINNAME" != x; then
+	AC_DEFINE_UNQUOTED(DEF_DOMAINNAME, $DEF_DOMAINNAME)
+fi
+
+dnl Default settings, unmodifyable.
+AC_DEFINE_UNQUOTED(ALIAS_SPACE_CHAR, ['-'])
+AC_DEFINE(MAXSUBJLEN, 4096)
+AC_DEFINE(MAXMESSAGEIDLEN, 512)
+AC_DEFINE(MAXHEADERLINE, 1000)
+AC_DEFINE(MAXHEADERLEN, 16384)
+AC_DEFINE(MAXADDRLEN, 1024)
+
+dnl It looks that the package does not compile without them.
+AC_DEFINE(USE_ISSUE)
+AC_DEFINE(USE_SUBJALIAS)
+
+AC_MSG_CHECKING(whether mimekit library is available)
+AC_SUBST(dis_cv_mimelib_opt)
+dis_cv_mimekit=no
+for dir in ../delegate*.*.*/mimekit ../mimekit* /usr/local/lib /usr/lib ; do
+	if test -f $dir/libmimekit.a; then
+		dis_cv_mimekit=yes
+		dis_cv_mimekit_dir=$dir
+		dis_cv_mimelib_opt="-L$dir -lmimekit"
+		break
+	fi
+done		
+
+if test $dis_cv_mimekit = "no"; then
+	AC_MSG_RESULT(not using mimekit)
+else
+	AC_MSG_RESULT(found using $dis_cv_mimekit_dir)
+fi
+
+dnl Checks for programs.
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+AC_CANONICAL_HOST
+case "$host_os" in
+bsdi*)	CC=${CC-"shlicc"}
+	OPTFLAG=${OPTFLAG-"-O2"};;
+esac
+
+dnl default values
+AC_SUBST(CC)
+CC=${CC-cc}
+AC_SUBST(OPTFLAG)
+OPTFLAG=${OPTFLAG-"-O"}
+
+#AM_SANITY_CHECK_CC
+
+AC_PATH_PROG(dis_cv_path_tee, tee)
+AC_DEFINE_UNQUOTED(TEE_COMMAND, "$dis_cv_path_tee")
+
+AC_PATH_PROG(dis_cv_path_perl, perl)
+AC_SUBST(dis_cv_path_perl)
+
+dnl Checks for libraries.
+dnl Replace `main' with a function in -lint:
+
+dnl Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADERS(fcntl.h malloc.h paths.h sys/file.h syslog.h unistd.h)
+
+AC_MSG_CHECKING(if sys/param.h defines MAXHOSTNAMELEN)
+AC_EGREP_CPP(yes,
+[#include <sys/param.h>
+#ifdef MAXHOSTNAMELEN
+	yes
+#endif
+],
+	[dis_cv_def_maxhostnamelen_param="yes"],
+	[dis_cv_def_maxhostnamelen_param="no"])
+AC_MSG_RESULT($dis_cv_def_maxhostnamelen_param)
+if test "$dis_cv_def_maxhostnamelen_param" = yes; then
+	AC_DEFINE(USE_SYS_PARAM_H)
+else
+	AC_MSG_CHECKING(if netdb.h defines MAXHOSTNAMELEN)
+	AC_EGREP_CPP(yes,
+[#include <netdb.h>
+#ifdef MAXHOSTNAMELEN
+	yes
+#endif
+],
+		[dis_cv_def_maxhostnamelen_netdb="yes"],
+		[dis_cv_def_maxhostnamelen_netdb="no"])
+	AC_MSG_RESULT($dis_cv_def_maxhostnamelen_netdb)
+	if test "$dis_cv_def_maxhostnamelen_netdb" = yes; then
+		AC_DEFINE(USE_NETDB_H)
+	else
+		echo "Fatal: no MAXHOSTNAMELEN found"
+		exit 1
+	fi
+fi
+
+dnl check for sendmail's path.
+AC_MSG_CHECKING(if paths.h defines path to sendmail)
+AC_TRY_COMPILE([#include <paths.h>], [char *hoge = _PATH_SENDMAIL;],
+	[dis_cv_def_path_sendmail="yes"], 
+	[dis_cv_def_path_sendmail="no"])
+AC_MSG_RESULT($dis_cv_def_path_sendmail)
+if test "$dis_cv_def_path_sendmail" = no; then
+	tmppath="/usr/lib:/usr/sbin:/usr/bin:$PATH"
+	AC_PATH_PROG(dis_cv_path_sendmail, sendmail, no, [$tmppath])
+	if test "$dis_cv_path_sendmail" = no; then
+		echo "Fatal: no sendmail found."
+		exit 1
+	else
+		AC_DEFINE_UNQUOTED(_PATH_SENDMAIL, "$dis_cv_path_sendmail")
+	fi
+fi
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_SIZE_T
+
+dnl Checks for library functions.
+AC_FUNC_MEMCMP
+AC_CHECK_FUNCS(gethostname strspn strstr flock lockf strchr strrchr memcpy)
+
+AC_OUTPUT(Makefile)

@@ -3,33 +3,37 @@
  * Archiving program for distribute
  *
  * Shigeya Suzuki, Dec 1993
- * Copyright(c)1993 Shigeya Suzuki
+ * Copyright(c)1993-1999 Shigeya Suzuki
  */
 
-#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4)
-#undef SVR4
-#define SVR4
-#endif
+#include <config.h>
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
+#ifdef STDC_HEADERS
+# include <stdio.h>
+#else
+# ifndef HAVE_STRCHR
+#  define strchr index
+# endif
+# ifndef HAVE_STRRCHR
+#  define strrchr rindex
+# endif
+#endif
 #include <ctype.h>
 #include <string.h>
 #include <sysexits.h>
 #include <sys/types.h>
-#include <sys/file.h>
+#ifdef HAVE_SYS_FILE_H
+# include <sys/file.h>
+#endif
 #include <sys/param.h>
-
-#include "cdefs.h"
-
-#ifdef SVR4
-#define	rindex	strrchr
+  
+#ifdef USE_SYSLOG
+# ifdef HAVE_SYSLOG_H
+#  include <syslog.h>
+# endif
 #endif
 
-#ifdef SYSLOG
-# include <syslog.h>
-#endif
+
 #ifdef DEBUGLOG
 FILE	*debuglog;
 #endif
@@ -189,7 +193,7 @@ parse_sequence(sequence, ml_n, ml_c, mlseq)
 	
 	tag = strsave(sequence + sizeof("X-Sequence: ")-1);
 	
-	endp = rindex(tag, '\0');
+	endp = strrchr(tag, '\0');
 	
 	for (p=endp; p-- > tag;) {
 	    if (!isdigit(*p))
