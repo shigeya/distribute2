@@ -25,6 +25,7 @@ distribute.1		Man page
 distribute.c		Distribute Main
 archive.c		Archiver Main
 header.c		Header parser
+install-sh		autoconf file
 util.h			Utility functions
 patchlevel.h		the patchlevel file
 longstr.c		long string handling library
