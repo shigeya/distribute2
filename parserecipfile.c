@@ -51,8 +51,10 @@ parserecipfile(filename)
 	/* skip comments */
 	if ((p = index(buf, '\n')) != NULL)
 	    *p = '\0';
-	if (buf[0] == '\0' || buf[0] == '#')
+	if (buf[0] == '\0' || buf[0] == '#') /* ignore comment or null line */
 	    continue;
+	if ((p = index(buf, '#')) != NULL) /* remove trailing comments */
+	    *p = '\0';
 
 	/* has address part -- easy
 	 */	

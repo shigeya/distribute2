@@ -44,6 +44,7 @@
  *	Yoshitaka Tokugawa	<toku@dit.co.jp>
  *	Shigeya Suzuki		<shigeya@foretune.co.jp>
  *	Hiroaki Takada		<hiro@is.s.u-tokyo.ac.jp>
+ *      Susumu Sano 		<sano@wide.ad.jp>
  */
 
 char *rcsID = "$Id$";
@@ -74,6 +75,7 @@ FILE* debuglog;
  */
 char *seq_path = DEF_SEQ_PATH;
 char *recipient_path = DEF_RECIPIENT_PATH;
+char *archive_path = DEF_ARCHIVE_PATH;
 char *majordomo_recipient_path = DEF_MAJORDOMO_RECIPIENT_PATH;
 
 char *seq_suffix = DEF_SEQ_SUFFIX;
@@ -90,23 +92,24 @@ char closealiaschar = DEF_CLOSEALIAS_CHAR;
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
 
 
-#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:P:RsdeijVAo"
+#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:P:C:RsdeijVAo"
 
 void
 usage() {
     fprintf(stderr, "usage: %s ", progname);
-    fprintf(stderr, "{-M list | -N list | -h host -l list} [-f senderaddr]\n");
-    fprintf(stderr, "	[-H headerfile] [-F footerfile]\n");
-    fprintf(stderr, "	[-r replytoaddr ]");
+    fprintf(stderr, "{-M list | -N list | -h host -l list}\n");
+    fprintf(stderr, "\t[-f senderaddr] [-H headerfile] [-F footerfile]\n");
+    fprintf(stderr, "\t[-r replytoaddr]");
 #ifdef ISSUE
-    fprintf(stderr, " [-I issuenumberfile]");
+    fprintf(stderr, " [-I issuenumfile]");
 #endif
 #ifdef SUBJALIAS
-    fprintf(stderr, " [-a aliasid] [-B brace_lr] [-P precedence]");
+    fprintf(stderr, " [-a aliasid] [-B brace_lr]");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "	[-RsdeijVAo] [-m sendmail-flags]\n");
-    fprintf(stderr, "	{-L recip-addr-file | recip-addr ...}\n");
+    fprintf(stderr, "\t[-P precedence] [-m sendmail-flags] [-C archive-dir]\n");
+    
+    fprintf(stderr, "\t[-RsdeijVAo] {-L recip-addr-file | recip-addr ...}\n");
 }
 
 printversion()
@@ -145,6 +148,9 @@ printversion()
 #endif
 #ifdef DEF_DOMAINNAME
     fprintf(stderr, "\t Default Domain Name: %s\n", DEF_DOMAINNAME);
+#endif
+#ifndef DEF_ARCHIVE_PATH
+    fprintf(stderr, "\t Default Archive Directory: %s\n", DEF_ARCHIVE_PATH);
 #endif
     fprintf(stderr, "\t Recipient file default path: %s\n", DEF_RECIPIENT_PATH);
     fprintf(stderr, "\t Sequence file default path:  %s\n", DEF_SEQ_PATH);
@@ -496,6 +502,10 @@ char ** argv;
 	char *headerfile = NULL;
 	char *footerfile = NULL;
 	char *replyto = NULL;
+	char *archivedir = NULL;
+	char archivetmp[16];
+	char archivetgt[16];
+	
 #ifdef ISSUE
 	int issuenum = -1;
 #endif
@@ -684,6 +694,10 @@ char ** argv;
 		    addversion = 0;
 		    break;
 #endif		    
+                case 'C':
+		    archivedir = optarg;
+	    break;
+
 		default:
 		    usage();
 		    logandexit(EX_USAGE, "unknown option: %c", c);
@@ -786,6 +800,36 @@ char ** argv;
 	 * the sender address is the list name with the usual -request
 	 * tacked on.
 	 */
+	
+	/*
+	 * If archiving is requested, change current directory to the
+	 * directory specified by option '-C', and make temporary file.
+	 * Archive message is written by 'tee' command. Finaly rename
+	 * this temporary file as *issue number* file.
+	 */
+	if (archivedir) {
+	    archivedir = adddefaultpath(archive_path, archivedir, "");
+	    if (chdir(archivedir) == -1) {
+		syslog(LOG_ERR, "%s: cannot change directory\n", archivedir);
+		archivedir = NULL;
+	    } else {
+		int fd;
+		strcpy(archivetmp, "msgXXXXXX");
+		mktemp(archivetmp);
+		if (debug == 0 && (fd = creat(archivetmp, 0644)) == -1) {
+		    syslog(LOG_ERR, "%s: cannot make file\n", archivetmp);
+		    archivedir = NULL;
+		} else {
+		    if (debug == 0)
+			close(fd);
+		    argappend(TEE_COMMAND);
+		    argappend(" ");
+		    argappend(archivetmp);
+		    argappend("|");
+		}
+	    }
+	}
+
 	argreset();
 	argappend(_PATH_SENDMAIL);
 	argappend(" ");
@@ -1022,7 +1066,15 @@ char ** argv;
 			fputs(buf, pipe);
 	}
 
-	fclose(pipe);
+	pclose(pipe);
+
+	if (debug == 0 && archivedir) {
+	  if (issuenum) {
+	    sprintf(archivetgt, "%d", issuenum);
+	    rename(archivetmp, archivetgt);
+	  } else
+	    unlink(archivetmp);
+	}
 
 #ifdef SYSLOG
 	syslog(LOG_INFO, "\"%s\" sent", subjectbuf);

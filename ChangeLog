@@ -1,5 +1,8 @@
 Tue Nov  2 15:46:39 1993  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
 
+	* Introduced sano tee style archive patch. also includes patch for
+	  recipient file parser.
+
 	* BSD/386 support included
 
 Sun Oct 17 15:20:33 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)

@@ -15,6 +15,14 @@
 # define DEF_RECIPIENT_PATH	"/usr/lib/mail-list"
 #endif
 
+#ifndef DEF_ARCHIVE_PATH
+# define DEF_ARCHIVE_PATH       "/usr/spool/mail-list"
+#endif
+
+#ifndef TEE_COMMAND
+# define TEE_COMMAND		"/usr/bin/tee"
+#endif
+
 #ifndef DEF_MAJORDOMO_RECIPIENT_PATH
 # define DEF_MAJORDOMO_RECIPIENT_PATH "/usr/lib/mail-list/majordomo/lists"
 #endif
