@@ -9,6 +9,7 @@
 #include <sys/param.h>
 
 #include "patchlevel.h"		/* version identifier */
+#include "longstr.h"
 
 /*
  * Send a mail message to users on a distribution list.  The message
@@ -74,13 +75,8 @@ extern	char * rindex();
 
 char *progname;
 
+struct longstr cmdbuf;
 
-#define	CMDBUFCHUNK	1024	/* minimum and command buffer grow chunk */
-
-char *cmdbuf = NULL;
-char *cmdbuf_p = NULL;
-size_t cmdbuf_size = 0;		/* size of currently allocated cmdbuf */
-size_t cmdbuf_used = 0;		/* used amount of cmdbuf */
 
 /* constants
  */
@@ -234,51 +230,15 @@ xrealloc(p, len)
     return np;
 }
 
-/* Reset command line buffer
- * We do not re-allocate buffer on reset
+/* Long argument handling
+ */
+
+/* init arguments
  */
 void
-cmdbuf_reset()
+arginit()
 {
-    if (cmdbuf == NULL) {
-	cmdbuf = xmalloc(CMDBUFCHUNK);
-	cmdbuf_size = CMDBUFCHUNK;
-    }
-
-    cmdbuf_used = 0;
-    cmdbuf_p = cmdbuf;
-}
-
-/* Grow command line buffer
- */
-void
-cmdbuf_grow(size)
-    size_t size;
-{
-    /* Rounds, and +1 */
-    int chunk = ((size / CMDBUFCHUNK)+1) * CMDBUFCHUNK;
-
-    if ( (cmdbuf_size + chunk) >= NCARGS) { /* exceeds limit */
-	/* WE NEED TO REPORT THIS TO SYSAMDIN */
-	exit(EX_UNAVAILABLE);
-    }
-
-    cmdbuf = xrealloc(cmdbuf, cmdbuf_size+chunk);
-    cmdbuf_size += chunk;
-}
-
-/* cmdbuf_append -- add memory block at end
- */
-void
-cmdbuf_append(p, len)
-    char *p;
-    size_t len;
-{
-    bcopy(p, cmdbuf_p, len);
-    
-    cmdbuf_p += len;
-    *(cmdbuf_p+1) = '\0';
-    cmdbuf_used += len;
+    ls_init(&cmdbuf);
 }
 
 /* reset arguments
@@ -286,7 +246,7 @@ cmdbuf_append(p, len)
 void
 argreset()
 {
-    cmdbuf_reset();
+    ls_reset(&cmdbuf);
 }
 
 /* Argcat catenates strings to the command buffer
@@ -295,18 +255,16 @@ void
 argappend(s)
     char *s;
 {
-    int len = strlen(s);
-    
-    if (cmdbuf == NULL) {
-	cmdbuf_reset();
-    }
-    if (cmdbuf_size < cmdbuf_used+len) {
-	cmdbuf_grow(len);
-    }
-
-    cmdbuf_append(s, len);
+    ls_appendstr(&cmdbuf, s);
 }
 
+/* return the "long" command string
+ */   
+char *
+argget()
+{
+    return cmdbuf.ls_buf;
+}
 
 /* make default path
  */
@@ -446,6 +404,9 @@ char ** argv;
 	int optionerror = 0;
 	
 	chdir("/tmp");
+
+	arginit();
+
 
 	/* setup default */
 #ifdef DEF_DOMAINNAME
@@ -815,12 +776,13 @@ char ** argv;
 	/*
 	 * Start this command running.
 	 */
+
 	if (debug) {
 		pipe = stdout;
-		printf("Command: %s\n", cmdbuf);
+		printf("Command: %s\n", argget());
 	}
 	else {
-		pipe = popen(cmdbuf, "w");
+		pipe = popen(argget(), "w");
 		if (pipe == NULL) {
 			perror("distribute: popen failed");
 			exit(1);

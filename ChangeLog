@@ -1,3 +1,9 @@
+Fri May 21 10:28:39 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* recipient が多い場合、可変長文字列のreallocにバグがいる関係で、
+	  正しく動作していなかった。可変長文字列のルーチンを切り分けた上で、
+	  テストプログラムを入れて動作チェックするようにした。
+
 Wed Apr 21 02:23:45 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* install 先を /usr/bin, /usr/manにデフォルト変更

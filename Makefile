@@ -72,10 +72,12 @@ MISCSRC=	ChangeLog README README.FIRST NEWS \
 		distribute.1 Makefile Makefile.pmake
 KITFILES=	${SRCS} ${HDRS} ${MISCSRC}
 
+OBJS=		distribute.o header.o longstr.o
+
 all: distribute
 
-distribute: distribute.o header.o
-	${CC} ${CFLAGS} -o distribute distribute.o header.o
+distribute: ${OBJS}
+	${CC} ${CFLAGS} -o distribute ${OBJS}
 
 install: distribute distribute.1
 	install -s -o ${OWNER} -g ${GROUP} -m 511 distribute \
@@ -95,6 +97,15 @@ depend:
 kit:
 	shar ${KITFILES} >distribute.kit
 
+# test suite
+test.x:	testlongstr.o longstr.o
+	cc -g -o test.x testlongstr.o longstr.o /usr/lib/debug/malloc.o
+
+test:	test.x
+	./test.x | perl resultcheck.pl
+
+
 ###
-distribute.o:	distribute.c Makefile patchlevel.h 
+distribute.o:	distribute.c Makefile patchlevel.h longstr.h
 header.o:	header.c
+longstr.o:	longstr.c longstr.h
