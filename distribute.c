@@ -1169,14 +1169,6 @@ send_message()
     }
 #endif
 
-    /* If message have not reject, then write index now.
-     * (We assume here that sendmail will not fork shell(in this case, archive)
-     * before closing pipe. so archive will run AFTER we correctly wrote index.
-     */
-    if (reject == 0) {
-	write_index();		/* write out index if succeed */
-    }
-    
     /* Put out the headers.
      */
     for (i=0; i<headc; i++) {
@@ -1255,6 +1247,14 @@ send_message()
      */
     putc('\n', pipe);
     
+    /* If message have not reject, then write index here.  (since we
+     * have subject information here! -- We assume here that sendmail
+     * will not fork shell(in this case, archive) before closing pipe. 
+     * so archive will run AFTER we correctly wrote index.
+     */
+    if (reject == 0) {
+	write_index();		/* write out index if succeed */
+    }
     
     /* Dump the message thru the pipe.  We push out the header(leader),
      * then the message body, then the footer.

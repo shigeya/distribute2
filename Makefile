@@ -71,6 +71,8 @@ CFLAGS=	-g ${OPTIONS} ${DEFAULTCONFIG} ${RCONFIG}
 LIBS=
 MAKE=	make
 PERL=	perl
+CC= 	gcc
+
 WHERE=	/usr/lib
 MANDIR=	/usr/man
 MANSEC=	1
@@ -108,7 +110,6 @@ LIBOBJS=	memory.o history.o pathutil.o strutil.o header.o logging.o \
 DOBJS=		distribute.o recipfile.o message.o ${LIBOBJS}
 
 AOBJS=		archive.o ${LIBOBJS}
-
 
 all: xdistribute xarchive
 
