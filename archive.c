@@ -8,9 +8,9 @@
 
 #include <config.h>
 
-#ifdef STDC_HEADERS
-# include <stdio.h>
-#else
+#include <stdio.h>
+
+#ifndef STDC_HEADERS
 # ifndef HAVE_STRCHR
 #  define strchr index
 # endif
