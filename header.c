@@ -42,7 +42,7 @@
 
 #include "memory.h"
 
-extern logandexit();
+extern void logandexit();
 
 /* Run through a message grabbing all of the header lines.  Stop at the
    end of the headers.

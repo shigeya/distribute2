@@ -38,6 +38,7 @@
  */
 static int print_error = 0;
 static char* logbuf = NULL;
+static int logbuf_size = LOGBUFSIZE;
 
 /* Initialization
  */
@@ -64,6 +65,7 @@ init_log(tag)
     fflush(debuglog);
 #endif
     logbuf = xmalloc(LOGBUFSIZE);
+    logbuf_size = LOGBUFSIZE;
 }
 
 
@@ -81,18 +83,31 @@ logging_setprinterror(flag)
  */
 
 void
-logerror_buf(prefix)
+logerror_buf(pri, prefix)
+    int pri;
     char* prefix;
 {
-#ifdef SYSLOG
-    syslog(LOG_ERR, logbuf);
-#endif
     if (print_error) {
 	if (prefix != NULL)
 	    fputs(prefix, stderr);
 	fputs(logbuf, stderr);
 	fputc('\n', stderr);
     }
+#ifdef LOGDEBUG
+    {
+	FILE* fp = fopen("/tmp/distribute.log", "a");
+	if (fp != NULL) {
+	    if (prefix != NULL)
+		fputs(prefix, fp);
+	    fputs(logbuf, fp);
+	    fputc('\n', fp);
+	    fclose(fp);
+	}
+    }
+#endif
+#ifdef SYSLOG
+    syslog(pri, logbuf);
+#endif
 }
 
 
@@ -103,9 +118,10 @@ logerror(char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    vsprintf(logbuf, fmt, ap);	/* vsnprintf is available everywhere?? */
+    /* vsnprintf is available everywhere?? -- may be.*/
+    vsnprintf(logbuf, logbuf_size, fmt, ap);
     va_end(ap);
-    logerror_buf("Error: ");
+    logerror_buf(LOG_ERR, "Error: ");
 }
 
 #else
@@ -116,8 +132,8 @@ logerror(fmt, a1, a2)
     char* a1;
     char* a2;
 {
-    sprintf(logbuf, fmt, a1, a2);
-    logerror_buf("Error: ");
+    sprintf(logbuf, fmt, a1, a2); /* they may not have snprintf also.. */
+    logerror_buf(LOG_ERR, "Error: ");
 }
 
 #endif
@@ -130,9 +146,9 @@ logwarn(char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    vsprintf(logbuf, fmt, ap);	/* vsnprintf is available everywhere?? */
+    vsnprintf(logbuf, logbuf_size, fmt, ap);
     va_end(ap);
-    logerror_buf("Warning: ");
+    logerror_buf(LOG_WARNING, "Warning: ");
 }
 
 #else
@@ -144,7 +160,7 @@ logwarn(fmt, a1, a2)
     char* a2;
 {
     sprintf(logbuf, fmt, a1, a2);
-    logerror_buf("Warning: ");
+    logerror_buf(LOG_WARNING, "Warning: ");
 }
 
 #endif
@@ -157,9 +173,9 @@ loginfo(char* fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    vsprintf(logbuf, fmt, ap);
+    vsnprintf(logbuf, logbuf_size, fmt, ap);
     va_end(ap);
-    logerror_buf("Info: ");
+    logerror_buf(LOG_INFO, "Info: ");
 }
 
 #else
@@ -170,7 +186,7 @@ void loginfo(fmt, a1, a2)
     char* a2;
 {
     sprintf(logbuf, fmt, a1, a2);
-    logerror_buf("Info: ");
+    logerror_buf(LOG_INFO, "Info: ");
 }
 
 #endif

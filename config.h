@@ -3,6 +3,8 @@
  *	Distribute configuration information
  */
 
+#ifndef __CONFIG_H__
+# define __CONFIG_H__
 
 /* Default configuration check and define if not defined
  */
@@ -91,6 +93,12 @@
  * Other set-ups
  */
 
+/* Since most of recent 4.4BSD derived system has PATH_SENDMAIL defined,
+ * this default should be set to 'goold-old-time' default value.
+ */
+
 #ifndef _PATH_SENDMAIL
 # define	_PATH_SENDMAIL	"/usr/lib/sendmail" /* default */
+#endif
+
 #endif

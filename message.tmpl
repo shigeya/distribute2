@@ -24,9 +24,9 @@ To: %M
 From: The Distribute Mailinglist Handler <%M>
 Subject: Distribute error: Bad Header: %1
 
-以下のメーリングリスト "%L" 向けの記事は、メールヘッダになんらかの問題が
-あるため、メーリングリストに送られませんでした。distributeの設定または
-ヘッダをご確認願います。
+以下のメーリングリスト "%L" 向けの記事は、
+メールヘッダになんらかの問題があるため、メーリングリストに送られませんでした。
+distributeの設定またはヘッダをご確認願います。
 
 "%L" 管理人代理 distribute
 
@@ -64,12 +64,12 @@ Cc: %M
 From: The Distribute Mailinglist Handler <%M>
 Subject: Distribute: got administrative message
 
-以下の "%L"メーリングリスト向けメッセージは、"add" "remove"
-"# help" などといったメンテナンス用キーワードを含んでいるため、
+以下の "%L"メーリングリスト向けメッセージは、
+メーリングリストへのコントロールメッセージとして解釈されたため、
 メーリングリストに送られませんでした。
 
-登録方法等をご確認ください。
-不明の場合は <%M> 宛にお問い合わせください。
+ご不明の点は <%M> まで
+お問い合わせください。
 
 
 "%L" 管理人代理 distribute
@@ -148,9 +148,9 @@ To: %M
 From: The Distribute Mailinglist Handler <%M>
 Subject: Distribute error: Not a news article
 
-以下のメーリングリスト "%L" 向けの記事は、メーリングリストがNetNews記
-事の配布用に設定されているのにもかかわらず、Newsの記事でなかったため配
-布されませんでした。
+以下のメーリングリスト "%L" 向けの記事は、
+メーリングリストがNetNews記事の配布用に設定されているのにもかかわらず、
+Newsの記事でなかったため配布されませんでした。
 
 "%L" 管理人代理 distribute
 
@@ -184,8 +184,9 @@ To: %M
 From: The Distribute Mailinglist Handler <%M>
 Subject: Distribute: Message from rejected address
 
-以下の "%L"メーリングリスト向けメッセージは、受取り拒否一覧に登録された
-アドレスからのメッセージであったため、メーリングリストに送られませんでした。
+以下の "%L"メーリングリスト向けメッセージは、
+受取り拒否一覧に登録されたアドレスからのメッセージであったため、メーリ
+ングリストに送られませんでした。
 
 ご質問がある場合は、<%M> まで、ご連絡お願いします。
 
@@ -226,12 +227,10 @@ Cc: %M
 From: The "%L" mailing list maintainer <%M>
 Subject: cc:Mail SMTPLINK Undeliverable Message from "%O" rejected
 
-こちらはメーリングリストハンドラ distribute です。
-
-cc:Mail SMTPLINK は Errors-To: を正しく認識しません。そのため、
-"%L" では Subject: が "cc:Mail SMTPLINK Undeliverable Message"
-であるメッセージをリジェクトしています。リジェクトした記事の内容は以下
-の通りです。
+cc:Mail SMTPLINK は Errors-To: を正しく認識しません。
+そのため、"%L" では
+Subject: が "cc:Mail SMTPLINK Undeliverable Message"
+であるメッセージを拒否しています。投稿が拒否された記事の内容は以下の通りです。
 
 もしあなたが送られたメッセージが "%L" に対する投稿であれば、
 恐れ入りますが、Subject: を変更して再送願います。
@@ -266,8 +265,6 @@ To: %O
 Cc: %M
 From: The "%L" mailing list maintainer <%M>
 Subject: Can't deliver message -- bad originator address
-
-こちらはメーリングリストハンドラ distribute です。
 
 このメッセージの発信人のメールアドレスが正しくありません。確認の上、発
 信者に連絡してください。

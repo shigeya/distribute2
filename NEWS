@@ -1,6 +1,48 @@
 What's new in this release
 
 
+Sun May  9 15:48:20 1999		Shigeya Suzuki
+
+o Now using mimekit (by <ysato@etl.go.jp>) to decode/encode subject before
+  applying subject sustitution. To use this facility, 
+
+	1) grab mimekit-1.8, which is in 'DeleGate' kit
+	   (under directory name 'mimekit')
+	   DeleGate is available at ETL server. check following web page:
+		http://wall.etl.go.jp/delegate/
+
+	2) extract DeleGate archive, go in 'mimekit' directory, then
+	   run 'make.' It will crate 'libmimekit.a' and several executables.
+	   Distribute only need libmimekit.a file.
+
+	3) Install libmimekit.a to /usr/local/lib. don't forget
+	   'ranlib' if necessary. You can optionally change Makefile to
+	   point to DeleGate source tree.
+
+  then, make as usual.
+
+  next patchlevel of distribute will use 'configure', so you don't 
+  need to change Makefile.
+
+  put '-w' option turns on/off the mimekit. currently default ON, so,
+  it will turn off if you give '-w.'
+
+o -c option added. If you set this, only subscriber address in the
+  recipient list can post to list.
+
+o LOTS of bugfix in argument parsing, etc.
+o some cosmetic changes.
+
+<< To Be Written More in netxt patchlevel >>
+
+Thanks to:
+	hchikara@nifs.ac.jp
+	Hidekazu Nakamura  <u90121@uis-inf.co.jp>
+	itojun@itojun.org
+	ume@bisd.hitachi.co.jp
+	y-koga@isoternet.org
+
+
 
 Wed Oct  1 14:40:47 1997		Shigeya Suzuki
 

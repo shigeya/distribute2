@@ -23,7 +23,7 @@ extern char *host;
 extern char maintainer[];
 extern char dommaintainer[];
 extern char *list;
-extern char *originator;
+extern char originator[];
 #endif
 
 

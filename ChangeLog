@@ -1,5 +1,24 @@
+1999-05-09  Shigeya Suzuki  <shigeya@malor.foretune.co.jp>
+	* patchlevel 26e
+	
+	* Many changes from <y-koga@isoternet.org>. Some of functions are
+	  totally replaced by his code:
+	  - introduced MIMEKIT option, with MIMELIB.
+	  - config.h now have #ifdef wrapper.
+	  - added REPORTADDR macro.
+	  - GETOPT_PATTERN bug fix (a lot... sigh).
+	  - checkadmin improvement.
+	  - argappend_quote introduced.
+	  - the way to keep original header info changed. (better!)
+	  - checkhdr had fail to check header.. 
+	    now check correctly using normalizeaddr.
+	  - syslog logging functions clean-ups.
+	  - normalizeaddr fix.
+
 1999-05-07  Shigeya Suzuki  <shigeya@malor.foretune.co.jp>
 
+	* patchlevel 25e
+	
 	* message.tmpl: message modified a bit.
 
 	* distribute.c (send_message): originator address should be used

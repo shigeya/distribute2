@@ -23,9 +23,12 @@ RCONFIG=-DRELEASESTATE=\"Alpha1\"
 #	-DSTRSEP_MISSING	strsep() is missing (Ex: SunOS)
 #	-DMSC			MSC Style Subject
 #	-DSVR4
+#	-DREPORTADDR=\"distribute-report\"	to add additinal report addr.
+#	-DUSEMIMEKIT		to use mimekit to decode/re-encode subject
+#	-DLOGDEBUG		LOGGING DEBUG
 #
 OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION \
-	-DSYSLOG_FACILITY=LOG_LOCAL4 -DCCMAIL
+	-DSYSLOG_FACILITY=LOG_LOCAL4 -DCCMAIL -DUSEMIMEKIT
 
 #
 # DEFAULT parameters -- YOU SHOULD EDIT THESE
@@ -62,8 +65,13 @@ OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION \
 
 # CONFIG EXAMPLE:
 ##DEFAULTCONFIG=\
-##	-DDEF_DOMAINNAME=\"foretune.co.jp\" \
+##	-DDEF_DOMAINNAME=\"somewhere.co.jp\" \
 ##	-DDEF_ALIAS_CHAR_OPTION=\"b\"
+
+#
+# External Library -- you should change this if mimekit is in different loc.
+#
+MIMELIB = -L/usr/local/lib -lmimekit
 
 #
 DESTDIR=
@@ -71,13 +79,14 @@ DESTDIR=
 CFLAGS=	-g ${OPTIONS} ${DEFAULTCONFIG} ${RCONFIG}
 #-Wall
 
-LIBS=
+LIBS=	${MIMELIB}
 MAKE=	make
 CC= 	${PURIFY} ${PURIFYOPTS} gcc
 #-D__USE_FIXED_PROTOTYPES__
 
-WHERE=	/usr/local/libexec
-MANDIR=	/usr/local/man
+PREFIX= /usr/local
+WHERE=	${PREFIX}/libexec
+MANDIR=	${PREFIX}/man
 MANSEC=	1
 
 # Install as
@@ -123,11 +132,11 @@ AOBJS=		archive.o ${LIBOBJS}
 all: xdistribute xarchive
 
 xdistribute: ${DOBJS}
-	${CC} ${CFLAGS} -o xdistribute ${DOBJS}
+	${CC} ${CFLAGS} -o xdistribute ${DOBJS} ${LIBS}
 	@size xdistribute
 
 xarchive: ${AOBJS}
-	${CC} ${CFLAGS} -o xarchive ${AOBJS}
+	${CC} ${CFLAGS} -o xarchive ${AOBJS} ${LIBS}
 	@size xarchive
 
 install: xdistribute distribute.1 xarchive

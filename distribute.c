@@ -6,9 +6,9 @@
  * This program is originally written by Steve Miller.
  * Later, heaviliy modified by group of people in Japan.
  *
- * Modified portions Copyright (c) 1990-1997 by Shigeya Suzuki,
+ * Modified portions Copyright (c) 1990-1999 by Shigeya Suzuki,
  * Shin Yoshimura, Yoshitaka Tokugawa, Hiroaki Takada and
- * Susumu Sano and other contributors.
+ * Susumu Sano, Yoichirou Koga and other contributors.
  *
  * Permission is granted to use, but not for sell.
  *
@@ -18,7 +18,7 @@
  *	Shigeya Suzuki		<shigeya@foretune.co.jp>
  *	Hiroaki Takada		<hiro@is.s.u-tokyo.ac.jp>
  *      Susumu Sano 		<sano@wide.ad.jp>
- *	Youichirou Koga		<y-koga@ccs.mt.nec.co.jp>
+ *	Youichirou Koga		<y-koga@isoternet.org>
  */
 
 #if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4) || defined(hpux)
@@ -71,8 +71,6 @@
 #include "history.h"
 #include "header.h"
 
-
-
 char *rcsID = "$Id$";
 char *versionID = VERSION;
 int patchlevel = PATCHLEVEL;
@@ -102,6 +100,42 @@ char closealiaschar = DEF_CLOSEALIAS_CHAR;
 char myhostname[MAXHOSTNAMELEN];
 #endif
 
+#ifdef REPORTADDR
+char *reportaddr = REPORTADDR;
+#endif
+
+
+/*
+ * Some keywords to check administrative/noise messages
+ */
+
+static char *maybeMlCmdNoise[] = {
+    "actives", "add", "address", "append", "bye", "check",
+    "config", "delete", "drop", "exit", "end", "get",
+    "index", "keyword", "off", "on", "query", "register",
+    "review", "send", "set", "stop", "which", "who", "whois",
+    NULL
+};
+
+static char *mustbeMlCmdNoise[] = {
+    "approve", "auth", "subscribe", "unsubscribe",
+    NULL
+};
+
+static char *mlCmdNoise[] = {
+    "addr", "admin", "chaddr", "digest", "gcos", "getdgst",
+    "guide", "help", "iam", "info", "intro", "library",
+    "list", "lists", "matome", "members", "member", "mget",
+    "mkdigest", "msg", "newconfig", "newinfo", "newintro",
+    "noskip", "objective", "passwd", "ping", "profile",
+    "quit", "remove", "search", "signoff", "skip", "stat",
+    "status", "summary", "traffic", "whois-index", "whois-list",
+    "writeconfig",
+    NULL
+};
+
+
+
 
 /* Globals
  */
@@ -119,9 +153,10 @@ char *headererr = NULL;
 char *recipientbuf = NULL;
 char *acceptbuf = NULL;
 char *rejectbuf = NULL;
-char *originatorreplyto = NULL;
 char subjectbuf[MAXSUBJLEN];
-char *originator = NULL;
+char *originatorreplyto = NULL;
+struct msgHeader origMsg;
+char originator[MAXADDRLEN];
 int bodysum = 0;		/* body check sum */
 char *sendmail_path = _PATH_SENDMAIL;
 
@@ -138,12 +173,19 @@ int mailer_uid, mailer_gid;
 FILE *noisef = NULL;
 
 int errorsto = 0;	/* append Erros-To? or not */
+
 #ifdef ISSUE
 int issuenum = -1;	/* issue number  */
 #endif
+
 #ifdef ADDVERSION
 int addversion = 1;	/* Add X-Distribute: header or not (default TRUE) */
 #endif
+
+#ifdef USEMIMEKIT
+int usemimekit = 1;	/* use mimekit (default*) */
+#endif
+
 int badhdr = 0;		/* something is fishy about the header */
 int wasadmin = 0;	/* was a noise message */
 int wasrejected = 0;	/* rejected message */
@@ -187,8 +229,8 @@ static int ccmail_error_message = 0;
 /* Macros
  */
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
-#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:S:m:v:I:r:a:L:P:C:n:Y:Z:K:A:RsdDeijVAXoOqtxc"
 
+#define	GETOPT_PATTERN	"a:cdef:h:ijl:m:n:oqr:stu:v:wxA:B:C:DF:H:I:L:M:N:OP:RS:U:VXY:Z:"
 
 /* Forward Declarations
  */
@@ -207,74 +249,122 @@ int acceptcheck __P((char*, char*));
  */
 int
 checkadmin(infile, newfile)
-    FILE *infile;
-    FILE **newfile;
+    FILE* infile;
+    FILE** newfile;
 {
     char *p, *s;
-    int last_cr = 0;
-    int pound_start = 0;
+    int last_cr = 1;
     int drop_or_add = 0;
     int from_or_to = 0;
     int mail_word = 0;
-    int hml_noise = 0;
-    int count = 0;
+    int ml_command_noise = 0;
+    int maybe_ml_command_noise = 0;
+    int mustbe_ml_command_noise = 0;
+    int wcount = 0;
     int crcount = 0;
-    int subscribe = 0;
-    int unsubscribe = 0;
-    int c;
+    int charcount = 0;
+    int spam = 0;
+    int bol = 1;
+    int c, i;
     char word[128];
-    
-    s = tmpnam((char*)NULL);
+
+#define MIN_LINES	10
+#define MIN_WORDS	20
+#define MIN_CHARS	100
+#define ISWSP(x)	((x == ' ') || (x == '\t') || (x == '\n'))
+
+    s = tmpnam((char *) NULL);
     if ((*newfile = fopen(s, "w+")) == NULL) {
 	perror("can't get temp file");
 	return(0);	/* better safe than sorry */
     }
     (void) unlink(s);
-    for (p = word ; (c = getc(infile)) != EOF; ) {
-	putc(c, *newfile);
 
-	last_cr = c == '\n';
-	if (last_cr)
+    p = word;
+
+    while (1) {
+	if ((c = getc(infile)) == EOF)
+	    break;
+
+	putc(c, *newfile);
+	charcount++;
+
+	if (c == '\n')
 	    crcount++;
 
-	pound_start = last_cr && c == '#';
-
-	if (!isalpha(c)) {
-	    *p = '\0';
-	    if (p > word)
-		count++;
-	    p = word;
-
-	    if (EQ(word, "subscribe"))
-		subscribe++;
-	    if (EQ(word, "unsubscribe") || EQ(word, "unsub"))
-		unsubscribe++;
-	    
-	    if (pound_start &&
-		(EQ(word, "# help") || EQ(word, "# db get") ||
-		 EQ(word, "# db list"))) {
-		hml_noise++;
+	if (last_cr) {
+	    while (ISWSP(c) || (c == '#')) {
+		if ((c = getc(infile)) == EOF)
+		    break;
+		putc(c, *newfile);
+		charcount++;
+		if (c == '\n')
+		    crcount++;
 	    }
-	    else if (EQ(word, "remove") || EQ(word, "drop") ||
-		EQ(word, "off") || subscribe || unsubscribe ||
-		EQ(word, "get") || EQ(word, "add"))
-		drop_or_add++;
-	    else if (EQ(word, "from") || EQ(word, "to"))
-		from_or_to++;
-	    else if (EQ(word, "mail") || EQ(word, "mailing") ||
-		     EQ(word, "list"))
-		mail_word++;
+	}
+
+	if (ISWSP(c)) {
+	    *p = '\0';
+	    if (!strlen(word))
+		continue;
+	    if (p > word)
+		wcount++;
+	    p = word;
+	    if (bol && crcount < MIN_LINES && wcount < MIN_WORDS && charcount < MIN_CHARS) {
+		if (EQ(word, "Authenticated"))
+		    spam++;
+		else if (EQ(word, "from") || EQ(word, "to"))
+		    from_or_to++;
+		else if (EQ(word, "mail") || EQ(word, "mailing") ||
+			 EQ(word, "list"))
+		    mail_word++;
+		else {
+		    for (i = 0; mustbeMlCmdNoise[i] != NULL; i++) {
+			if (EQ(word, mustbeMlCmdNoise[i])) {
+			    mustbe_ml_command_noise++;
+			    break;
+			}
+		    }
+		    if (!mustbe_ml_command_noise) {
+			for (i = 0; mlCmdNoise[i] != NULL; i++) {
+			    if (EQ(word, mlCmdNoise[i])) {
+				ml_command_noise++;
+				break;
+			    }
+			}
+		    }
+		    if (!(mustbe_ml_command_noise || ml_command_noise)) {
+			for (i = 0; maybeMlCmdNoise[i] != NULL; i++) {
+			    if (EQ(word, maybeMlCmdNoise[i])) {
+				maybe_ml_command_noise++;
+				break;
+			    }
+			}
+		    }
+		}
+	    }
+	    bol = 0;
 	}
 	else if (p < &word[sizeof word - 1])
 	    *p++ = c;
+
+	if (c == '\n')
+	    bol = 1;
+
+	last_cr = c == '\n';
     }
     rewind(*newfile);
-    
+
     /* Use fancy-shmancy AI techniques to determine what the message is. */
-    return (count < 40 && crcount < 5 &&
-	   ((drop_or_add && from_or_to && mail_word) || hml_noise))
-	|| (count < 15 && crcount < 5 && (subscribe || unsubscribe));
+    return (spam || crcount < 2 || charcount < 20 ||
+	    (mustbe_ml_command_noise &&
+	     charcount < MIN_CHARS * 2 && crcount < MIN_LINES * 2) ||
+	    ((ml_command_noise || (drop_or_add && from_or_to && mail_word)) &&
+	     (charcount < MIN_CHARS && crcount < MIN_LINES)) ||
+	    (maybe_ml_command_noise &&
+	     charcount * 2 < MIN_CHARS && crcount * 2 < MIN_LINES));
 }
+
 
 /* Long argument handling
  */
@@ -308,8 +398,21 @@ void
 argappend_quote(s)
     char *s;
 {
-    /* append items separated by quote.. */
-    ls_appendstr(&cmdbuf, s);
+    /* append items separated by quote.. slow.. */
+    char* p = strsave(s);	/* must make copy, because strsep destroys.. */
+    char* bp = p;
+    char* sp;
+    int count = 0;
+    
+    while ((sp = strsep(&bp, " ")) != NULL) {
+	if (count != 0) {
+	    ls_appendstr(&cmdbuf, " ");
+	}
+	ls_appendstr(&cmdbuf, "'");
+	ls_appendstr(&cmdbuf, sp);
+	ls_appendstr(&cmdbuf, "'");
+	count++;
+    }
 }
 
 /* return the "long" command string
@@ -392,10 +495,13 @@ usage()
     fprintf(stderr, " [-a aliasid] [-B brace_lr]");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "\t[-P precedence] [-S sendmail-path] [-m sendmail-flags] [-C archive-dir]\n");
-    fprintf(stderr, "\t[-Z indexfile]\n");
-    
-    fprintf(stderr, "\t[-ADKORVXdeijnosxt] {-L recip-addr-file | recip-addr ...}\n");
+    fprintf(stderr, "\t[-P precedence] [-m sendmail-flags]\n");
+    fprintf(stderr, "\t[-Z indexfile] [-v seqfile] [-I seqfile]\n");
+    fprintf(stderr, "\t[-A accept-addr-file] [-S sendmail-path]\n");
+    fprintf(stderr, "\t[-U archive-userid] [-u mailer-uid]\n");
+    fprintf(stderr, "\t[-C archive-dir] [-Y archive-path]\n");
+    fprintf(stderr, "\t[-DKORVXdeijnoqstuxwc] [-L recip-addr-file | recip-addr ...]\n");
+
 }
 
 void
@@ -472,7 +578,7 @@ parse_options(argc, argv)
 				       seq_suffix, 0);
 	    if (majordomo)
 		recipfile = adddefaultpath(majordomo_recipient_path,
-					   optarg,"", majordomo);
+					   optarg, "", majordomo);
 	    else
 		recipfile = adddefaultpath(recipient_path, optarg,
 					   recipient_suffix, majordomo);
@@ -491,7 +597,7 @@ parse_options(argc, argv)
 				       seq_suffix, 0);
 	    if (majordomo)
 		recipfile = adddefaultpath(majordomo_recipient_path,
-					   optarg,"", majordomo);
+					   optarg, "", majordomo);
 	    else
 		recipfile = adddefaultpath(recipient_path, optarg,
 					   recipient_suffix, majordomo);
@@ -566,6 +672,12 @@ parse_options(argc, argv)
 		sendmailargs = strspappend(sendmailargs, optarg);
 	    break;
 	    
+#ifdef USEMIMEKIT
+	case 'w':
+ 	    usemimekit = !usemimekit;
+	    break;
+#endif
+
 	case 'I':	/* add isssue number */
 	case 'v':	/* add vol issue header */
 	    issuefile = adddefaultpath(seq_path, optarg,
@@ -733,10 +845,8 @@ init_distribute()
 
 int
 parse_and_clean_header(file)
-    FILE *file;
+    FILE* file;
 {
-    static char addrbuf[MAXADDRLEN]; /* is *NOT* fancy.. */
-    
     /* Read all of the headers and make a header vector
      */
     headc = head_parse(MAXHEADERLINE, headv, file);
@@ -746,7 +856,7 @@ parse_and_clean_header(file)
     if (newstrim) {
 	char frombuf[MAXADDRLEN];
 	if ((header = head_find(headc, headv, "From:")) != NULL) {
-	    strcpy(frombuf, header);
+	    strncpy(frombuf, header, sizeof(frombuf)-1);
 	    header = normalizeaddr(frombuf);
 
 	    if (header != NULL && strcmp(newstrim, header) == 0) {
@@ -764,34 +874,52 @@ parse_and_clean_header(file)
      * then send to postmaster
      */
     if ((header = head_find(headc, headv, "Sender:")) != NULL) {
-	originator = header + sizeof("Sender:") - 1;
-    }
-    else if ((header = head_find(headc, headv, "Return-Path:")) != NULL) {
-	originator = header + sizeof("Return-Path:") - 1;
-    }
-    else if ((header = head_find(headc, headv, "From:")) != NULL) {
-	originator = header + sizeof("From:") - 1;
-    }
-    else if ((header = head_find(headc, headv, "Reply-To:")) != NULL) {
-	originator = header + sizeof("Reply-To:") - 1;
-    }
-    else {
-	originator = "postmaster";
-    }
-
-    strcpy(addrbuf, originator);
-    originator = normalizeaddr(addrbuf);
-
-    if (originator == NULL) {
-	badoriginator = 1;
-	originator = "postmaster"; /* force use this */
-    }
-
-    if (originator != NULL) {
-	while (originator[0] == ' ') {
-	    originator++;
+	header = normalizeaddr(header + sizeof("Sender:") - 1);
+	if (header != NULL) {
+	    strncpy(origMsg.sender, header, sizeof(origMsg.sender)-1);
+	}
+	else {
+	    origMsg.sender[0] = '\0';
 	}
     }
+    if ((header = head_find(headc, headv, "Return-Path:")) != NULL) {
+	header = normalizeaddr(header + sizeof("Return-Path:") - 1);
+	if (header != NULL) {
+	    strncpy(origMsg.returnpath, header, sizeof(origMsg.returnpath)-1);
+	}
+	else {
+	    origMsg.returnpath[0] = '\0';
+	}
+    }
+    if ((header = head_find(headc, headv, "From:")) != NULL) {
+	header = normalizeaddr(header + sizeof("From:") - 1);
+	if (header != NULL) {
+	    strncpy(origMsg.from, header, sizeof(origMsg.from)-1);
+	}
+	else {
+	    origMsg.from[0] = '\0';
+	}
+    }
+    if ((header = head_find(headc, headv, "Reply-To:")) != NULL) {
+	header = normalizeaddr(header + sizeof("Reply-To:") - 1);
+	if (header != NULL) {
+	    strncpy(origMsg.replyto, header, sizeof(origMsg.replyto)-1);
+	}
+	else {
+	    origMsg.replyto[0] = '\0';
+	}
+    }
+
+    if (origMsg.sender[0] != '\0')
+	strncpy(originator, origMsg.sender, sizeof(originator)-1);
+    else if (origMsg.returnpath[0] != '\0')
+	strncpy(originator, origMsg.returnpath, sizeof(originator)-1);
+    else if (origMsg.from[0] != '\0')
+	strncpy(originator, origMsg.from, sizeof(originator)-1);
+    else if (origMsg.replyto[0] != '\0')
+	strncpy(originator, origMsg.replyto, sizeof(originator)-1);
+    else
+	strcpy(originator, "postmaster");
 
     /*
      * Clean header
@@ -845,13 +973,13 @@ parse_and_clean_header(file)
     /* set maintainer
      */
     if (senderaddr != NULL) {
-	strcpy(maintainer, senderaddr);
+	strncpy(maintainer, senderaddr, sizeof(maintainer)-1);
     }
     else {
 	if (majordomo || useowner)
-	    sprintf(maintainer, "owner-%s", list);
+	    snprintf(maintainer, sizeof(maintainer), "owner-%s", list);
 	else
-	    sprintf(maintainer, "%s-request", list);
+	    snprintf(maintainer, sizeof(maintainer), "%s-request", list);
     }
 
     /* Delete the Precedence: header.
@@ -862,9 +990,10 @@ parse_and_clean_header(file)
     }
 
     if (index(maintainer, '@') == NULL)
-	sprintf(dommaintainer, "%s@%s", maintainer, host);
+	snprintf(dommaintainer, sizeof(dommaintainer),
+		 "%s@%s", maintainer, host);
     else
-	strcpy(dommaintainer, maintainer);
+	strncpy(dommaintainer, maintainer, sizeof(dommaintainer)-1);
 
     return headc;
 }
@@ -903,7 +1032,8 @@ prepare_arguments(argc, argv)
 	|| strcmp(subject, "Message not deliverable") == 0
 	|| strcmp(subject, "Unsent Message Returned to Sender") == 0
 	|| strncmp(subject, "cc:Mail Link to SMTP Undeliverable Message", 42) == 0
-	|| strncmp(subject, "NON-DELIVERY of:", 16) == 0) {
+	|| strncmp(subject, "NON-DELIVERY of:", 16) == 0
+	|| strncmp(subject, "NDN:", 4) == 0) {
 
 	ccmail_error_message = 1;
     }
@@ -915,29 +1045,24 @@ prepare_arguments(argc, argv)
 	accept_error = 1;
     }
 
-{
-    char *fromaddr, *rejaddr;
-    char addrbuf[MAXADDRLEN];
-    int fromlen, rejlen;
-
-    if ((header = head_find(headc, headv, "From:")) != NULL) {
-	header += strlen("From:");
-	for (; *header == ' ' || *header == '	'; header++);
-	strcpy(addrbuf, header);
-	fromaddr = normalizeaddr(addrbuf);
-	fromlen = strlen(fromaddr);
-	while ((rejaddr = (char *)strsep(&rejectbuf, " ")) != NULL) {
-	    rejlen = strlen(rejaddr);
+    /* Reject check
+     * not necessary to copy rejectbuf -- becaust I'm last user.
+     */
+    if (origMsg.from != NULL) {
+	char *rejaddr;
+	int fromlen = strlen(origMsg.from);
+	while ((rejaddr = strsep(&rejectbuf, " ")) != NULL) {
+	    int rejlen = strlen(rejaddr);
 	    if (fromlen > rejlen) {
-		if (!strncasecmp(fromaddr, rejaddr, rejlen)) {
+		if (!strncasecmp(origMsg.from, rejaddr, rejlen)) {
 		    wasrejected = 1;
 		    break;
 		}
 	    }
 	}
     }
-}
     
+#if 0
     /*
      * Simple check that the header fields aren't grossly
      * mismatched in terms of parens and angle-brackets.
@@ -950,7 +1075,8 @@ prepare_arguments(argc, argv)
 	    }
 	}
     }
-    
+#endif
+
     /*
      * Give the command its input.
      * Deal with being smart about add-me mail here.
@@ -1026,6 +1152,12 @@ prepare_arguments(argc, argv)
 	}
 	argappend(" ");
 	argappend(originator);
+
+	/* debugging aid */
+#ifdef REPORTADDR
+	argappend(" ");
+	argappend(reportaddr);
+#endif
     }
 
     /* If no error, append regular recipients */
@@ -1047,7 +1179,6 @@ acceptcheck(buf, pat)
     char *buf;
     char *pat;
 {
-    char patbuf[1024];
     char *p;
     int len;
 
@@ -1060,17 +1191,14 @@ acceptcheck(buf, pat)
     if (pat == NULL || pat[0] == '\0')
 	return 0;
 
-    if (strlen(pat) > sizeof(patbuf)/2)
-	return 0;
-    
-    sprintf(patbuf, "'%s'", pat); /* cheat hack */
-    p = strstr(buf, patbuf);
+    p = strstr(buf, pat);
     
     if (p == NULL)		/* no match */
 	return 0;		/* fail */
 
-    len = strlen(patbuf);
+    len = strlen(pat);
 
+    /* don't match middle of word.. paranoia? */
     if ((p[len] == ' ' || p[len] == '\0')) {
 	if (p == buf)		/* at beginning */
 	    return 1;
@@ -1081,6 +1209,36 @@ acceptcheck(buf, pat)
     }
     return 0;
 }
+
+#ifdef USEMIMEKIT
+/*
+ * MIME_makeSubj -- TBW
+ */
+char*
+MIME_makeSubj(s)
+    char* s;
+{
+    /* these are in mime-kit */
+    extern int MIME_SPACE_ENCODING;
+    extern void MIME_strHeaderDecode(char*, char*, int);
+    extern void MIME_strHeaderEncode(char*, char*, int);
+
+    char *p;
+    char q[MAXSUBJLEN], r[MAXSUBJLEN * 3];
+
+    MIME_SPACE_ENCODING = 1;
+    MIME_strHeaderDecode(s, q, sizeof(q));
+    MIME_SPACE_ENCODING = 0;
+    MIME_strHeaderEncode(q, r, sizeof(r));
+
+    p = (char*) malloc(sizeof(r));
+    if (p == NULL)
+	return s;		/* NG -- return as is. */
+    strncpy(p, r, sizeof(r)-1);
+    return(p);
+}
+#endif
+
 
 /* AddAliasIDToHeader -- This function format then insert X-SOMETHING style
  * identifier in header.
@@ -1118,8 +1276,9 @@ AddAliasIDToHeader(pipe, aliasid, issuenum)
  */
 #if defined(ISSUE)
 void
-AddAliasIDToSubject(subjectbuf, subject, aliasid, issuenum)
+AddAliasIDToSubject(subjectbuf, subjectbuf_size, subject, aliasid, issuenum)
     char *subjectbuf;
+    int subjectbuf_size;
     char *subject;
     char *aliasid;
     int issuenum;
@@ -1172,22 +1331,24 @@ AddAliasIDToSubject(subjectbuf, subject, aliasid, issuenum)
 	}
 	
 	if (issuenum >= 0) {	/* with valid issue number, or error(0) */
-	    sprintf(subjectbuf, subjfmt,
-		    openaliaschar,
-		    aliasid,issuenum,
-		    closealiaschar,
-		    subject);
+	    snprintf(subjectbuf, subjectbuf_size,
+		     subjfmt,
+		     openaliaschar,
+		     aliasid, issuenum,
+		     closealiaschar,
+		     subject);
 	}
 	else {
-	    sprintf(subjectbuf, "%c%s%c %s",
-		   openaliaschar,
-		   aliasid,
-		   closealiaschar,
-		   subject);
+	    snprintf(subjectbuf, subjectbuf_size,
+		     "%c%s%c %s",
+		     openaliaschar,
+		     aliasid,
+		     closealiaschar,
+		     subject);
 	}
     }
     else {
-	strcpy(subjectbuf, subject);
+	strncpy(subjectbuf, subject, subjectbuf_size);
     }
 }
 #endif
@@ -1339,10 +1500,23 @@ send_message()
     }
 #endif
     
+#ifdef USEMIMEKIT
+    if (usemimekit) {
+	strncpy(subject, MIME_makeSubj(subject), sizeof(subject)-1);
+    }
+#endif
+    
 #if defined(SUBJALIAS)
-    AddAliasIDToSubject(subjectbuf, subject, aliasid, issuenum);
+    AddAliasIDToSubject(subjectbuf, sizeof(subjectbuf),
+			subject, aliasid, issuenum);
 #else
-    strcpy(subjectbuf, subject);
+    strncpy(subjectbuf, subject, sizeof(subjectbuf)-1);
+#endif
+
+#ifdef USEMIMEKIT
+    if (usemimekit) {
+	strncpy(subjectbuf, MIME_makeSubj(subjectbuf), sizeof(subjectbuf)-1);
+    }
 #endif
 
     fprintf(pipe, "Subject: %s\n", subjectbuf);
@@ -1573,8 +1747,6 @@ getnextissue(filename)
 /*
  * Modified by hchikara@nifs.ac.jp  1998.12.5, modified and merged by shigeya.
  *  1. brackets quoted by "" is not count
- *  2. In the "From:" field,  the count of parens is not used when angres
- *     are used ----- This routine is commented out now...
  */
 char *
 checkhdr1(s)
@@ -1587,10 +1759,9 @@ checkhdr1(s)
     int has_angle = 0;
     int last_char = 0;
     
-    if (strncasecmp(s, "From:", 5) != 0
-	&& strncasecmp(s, "To:", 3) != 0
+    if (strncasecmp(s, "To:", 3) != 0
 	&& strncasecmp(s, "Cc:", 3) != 0) {
-	return NULL;		/* is NOT From/To/Cc, just pass it */
+	return NULL;		/* is NOT To/Cc, just pass it */
     }
     
     while (*s != '\0') {
@@ -1644,13 +1815,6 @@ checkhdr1(s)
 	}
     }
 
-    /* In the "From:" field, mismatched parens is ignored when angle is used. 
-     * This function is not active now because it is not checked yet...
-     */
-#if 0
-    if (has_angle != 0 && nangles == 0 && strncasecmp(s, "From:", 5) == 0 )
-	return NULL;
-#endif
     if (nangles == 0 && nparens == 0)
 	return NULL;
     if (nquote)
@@ -1666,8 +1830,9 @@ int
 checkhdr(s)
     register char *s;
 {
+    /* using normalizeaddr to see the field is correct.. */
     if (strncasecmp(s, "From:", 5) == 0) { /* From is special.. */
-	return normalizeaddr(s) != NULL;
+	return normalizeaddr(s + sizeof("From")-1) != NULL;
     }
     return checkhdr1(s) == NULL;
 }
@@ -1688,7 +1853,7 @@ write_index()
 	}
 	else {
 	    char sbuf[MAXSUBJLEN];
-	    strcpy(sbuf, subjectbuf);
+	    strncpy(sbuf, subjectbuf, sizeof(sbuf)-1);
 	    changech(sbuf, '\n', ' '); /* don't want LF in history file*/
 
 	    (void)openhistory(index_name, "a+");

@@ -40,8 +40,8 @@ char *index();
 char *rindex();
 #endif
 
-extern logandexit();
-extern logwarn();
+extern void logandexit();
+extern void logwarn();
 
 
 /* normalizeaddr -- check one address and normalize it if necessary.
@@ -51,66 +51,116 @@ char *
 normalizeaddr(buf)
     char *buf;
 {
-    char* xp;
-    char* rp;
-    char* beginp;
-    char* endp;
-    char* namep = NULL;
-    char* nbufp = strsave(buf);	/* this buffer will not free'ed.. */
-    char* p;
+    char *rp;
+    char *p, *beginp, *tp;
+    char *statstr = "";
 
-    for (p = nbufp; ; p++) {
-      restart:
-	if (*p == '\0')
+    if (strlen(buf) >= MAXADDRLEN) {
+	logwarn("too large buf\n");
+	return NULL;
+    }
+
+    p = malloc(sizeof(char) * MAXADDRLEN);
+    tp = p;
+
+    strncpy(tp, buf, MAXADDRLEN-1);
+    while (*tp == ' ' || *tp == '\t')
+	tp++;
+
+    beginp = tp;
+
+    /* delete comment(s) */
+    for (; *statstr == '\0'; tp++) {
+	if (*tp == '\0')
 	    break;
 
-	if (*p == '\\' && *++p != '\0') /* ignore quoting */
+	if (*tp == '\\' && *++tp != '\0') /* ignore quoting */
 	    continue;
 
-	if (*p == '<') { /* found non-comment angle bracket */
-	    beginp = ++p;
-	    if ((p = index(beginp, '>')) != NULL) {
-		*p = '\0';
+	if (*tp == '(') { /* found parenses.. */
+	    char *pstart = tp;
+	    while (*tp && ! ( *tp == ')' && tp[-1] != '\\'))
+		tp++;
+	    if (*tp != ')') {
+		statstr = "paren mismatch";
+		break;
+	    }
+	    strcpy(pstart, tp + 1);
+	    tp = pstart;
+	}
+    }
+
+    /* delete double-quote */
+    for (tp = beginp; *statstr == '\0'; tp++) {
+	if (*tp == '\0')
+	    break;
+
+	if (*tp == '\\' && *++tp != '\0') /* ignore quoting */
+	    continue;
+
+	if (*tp == '"') { /* double-quote, just skip */
+	    char *qstart = tp;
+	    tp++;
+	    while (*tp && !(*tp == '"' && tp[-1] != '\\'))
+		tp++;
+	    if (*tp != '"') {
+		statstr = "doublequote mismatch";
+		break;
+	    }
+	    strcpy(tp, tp + 1);
+	    strcpy(qstart, qstart + 1);
+	}
+    }
+
+    /* find address */
+    for (tp = beginp; *statstr == '\0'; tp++) {
+	if (*tp == '\0')
+	    break;
+
+	if (*tp == '\\' && *++tp != '\0') /* ignore quoting */
+	    continue;
+
+	if (*tp == '<') { /* found non-comment angle bracket */
+	    beginp = ++tp;
+	    if ((tp = index(beginp, '>')) != NULL) {
+		*tp = '\0';
+		break;
 	    }
 	    else {
-		logwarn("angle mismatch: %s.\n", buf);
-		return NULL;
-	    }
-	    return beginp;
-	}
-	
-	if (*p == '(') { /* found parenses.. */
-	    beginp = p++;
-	    while (*p && ! ( *p == ')' && p[-1] != '\\'))
-		p++;
-	    if (*p != ')') {
-		logwarn("paren mismatch: %s.\n", buf);
-		return NULL;
-	    }
-	    strcpy(beginp, ++p); /* skip these parens.. */
-	    p = beginp;
-	    goto restart;
-	}
-
-	if (*p == '"') { /* double-quote, just skip */
-	    p++;
-	    while (*p && !(*p == '"' && p[-1] != '\\'))
-		p++;
-	    if (*p != '"') {
-		logwarn("doublequote mismatch: %s.\n", buf);
-		return NULL;
+		statstr = "angle mismatch";
+		break;
 	    }
 	}
     }
 
-    rp = rindex(buf, '\0');
+    if (*statstr != '\0') {
+	logwarn("%s: %s.\n", statstr, buf);
+	free(p);
+	return NULL;
+    }
+
+    /* skip beggining white space(s) */
+    while (*beginp == ' ' || *beginp == '\t')
+	beginp++;
+
+    if (*beginp == '\0') {
+	logwarn("no address: %s.\n", buf);
+    }
+
+    /* remove trailing space */
+    rp = rindex(beginp, '\0');
     if (rp != NULL) {
-	while (rp > buf && *--rp == ' ') /* remove trailing space */
+	while (rp > beginp && *--rp == ' ')
 	    *rp = '\0';
     }
 
-    return nbufp;
+    tp = malloc(sizeof(char) * MAXADDRLEN);
+    strncpy(tp, beginp, MAXADDRLEN-1);
+    free(p);
+
+    return tp;
 }
+
 
 char *
 parserecipfile(filename, errormode)
@@ -150,9 +200,7 @@ parserecipfile(filename, errormode)
 		    first = 0;
 		}
 
-		ls_appendstr(&recipbuf, "'"); /* cheat dirty hack */
 		ls_appendstr(&recipbuf, namep);
-		ls_appendstr(&recipbuf, "'");
 	    }
 	}
     }
