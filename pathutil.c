@@ -1,4 +1,4 @@
-/* pathutil.c,v 1.3 1994/02/13 13:46:48 shigeya Exp
+/* $Id$
  *
  * Path related support functions
  *

@@ -1,4 +1,4 @@
-/* pathutil.h,v 1.2 1994/02/13 13:46:49 shigeya Exp */
+/* $Id$ */
 
 #ifndef __PATHUTIL_H__
 #define __PATHUTIL_H__

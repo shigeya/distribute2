@@ -1,4 +1,4 @@
-/* history.c,v 1.4 1994/02/10 05:40:46 shigeya Exp
+/* $Id$
  *
  * history handling routines
  *

@@ -155,3 +155,49 @@ Subject: Distribute error: Not a news article
 jp	notanews_jp	euc_to_iso2022jp
 *	notanews_us	none
 &
+
+################################################################# ccmailerr
+
+@ ccmailerr_us
+To: %O
+Cc: %M
+From: The "%L" mailing list maintainer <%M>
+Subject: cc:Mail SMTPLINK Undeliverable Message from "%O" rejected
+
+The cc:Mail SMTPLINK treats Errors-To: header bad.  So, we reject the
+message that has "cc:Mail SMTPLINK Undeliverable Message" as Subject:
+on "%L". The rejected messase is as follows.
+
+If the message you sent is posting for "%L", please re-send with
+another Subject:.
+
+distribute -- Your mailing list handler.
+
+---- unsent message header follows ----
+@
+
+@ ccmailerr_jp
+To: %O
+Cc: %M
+From: The "%L" mailing list maintainer <%M>
+Subject: cc:Mail SMTPLINK Undeliverable Message from "%O" rejected
+
+こちらはメーリングリストハンドラ distribute です。
+
+cc:Mail SMTPLINK は Errors-To: を正しく認識しません。そのため、
+"%L" では Subject: が "cc:Mail SMTPLINK Undeliverable Message"
+であるメッセージをリジェクトしています。リジェクトした記事の内容は以下
+の通りです。
+
+もしあなたが送られたメッセージが "%L" に対する投稿であれば、
+恐れ入りますが、Subject: を変更して再送願います。
+
+"%L" 管理人代理 distribute
+
+---- unsent message header follows ----
+@
+
+& ccmailerr
+jp	ccmailerr_jp	euc_to_iso2022jp
+*	ccmailerr_us	none
+&

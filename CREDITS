@@ -1,0 +1,35 @@
+Following people contributes patches/extensions to this program.
+
+
+Brent Chapman
+	Original Author (He is not using distribute since long time ago.)
+
+
+Shin Yosimura
+	First version of Sequencer
+
+Yoshitaka Tokugawa
+	Several useful hacks
+
+Shigeya Suzuki	<shigeya@foretune.co.jp>
+	Locking, lots of source cleaning and extensions
+
+Hiroaki Takada	<hiro@is.s.u-tokyo.ac.jp>
+	lots of extensions and fixes.
+
+Susumu Sano <sano@nec.co.jp>
+	Several useful hacks
+
+pdp@cyber-fleet.com
+	Cc:Mail bouce hack.
+
+
+Minor Fixes / platform support by:
+	Takamichi Miyoshi <miyoshi@iij.ad.jp>
+	Masato Minda <minmin@astec.co.jp>
+	<caoru@sgi.co.jp>
+	Koga <y-koga@ccs.mt.nec.co.jp>
+	<nao@jaist.ac.jp>
+	jun@soum.co.jp
+
+$Id$

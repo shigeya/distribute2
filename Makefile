@@ -2,10 +2,7 @@
 #
 # Makefile for distribute
 #
-# Some hacks here courtesy of Brent Chapman, brent@napa.Telebit.COM
-#
-# Modified by: shin@u-tokyo.ac.jp, toku@dit.co.jp, shigeya@foretune.co.jp,
-#		hiro@is.s.u-tokyo.ac.jp and sano@wide.ad.jp
+# See CREDITS for credit and COPYRIGHT for copyright notice.
 #
 RCONFIG=-DRELEASESTATE=\"Alpha\"
 
@@ -24,7 +21,8 @@ RCONFIG=-DRELEASESTATE=\"Alpha\"
 #	-DSTRSTR_MISSING	strstr() missing (Ex: NEWSOS 4.x)
 #	-DMSC			MSC Style Subject
 #
-OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION -DSYSLOG_FACILITY=LOG_LOCAL4
+OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION \
+	-DSYSLOG_FACILITY=LOG_LOCAL4 -DCCMAIL
 #
 
 #
@@ -72,6 +70,7 @@ CFLAGS=	-g ${OPTIONS} ${DEFAULTCONFIG} ${RCONFIG}
 
 LIBS=
 MAKE=	make
+PERL=	perl
 WHERE=	/usr/lib
 MANDIR=	/usr/man
 MANSEC=	1
@@ -147,7 +146,7 @@ test.x:	testlongstr.o longstr.o
 	cc -g -o test.x testlongstr.o longstr.o
 
 test:	test.x
-	./test.x | perl resultcheck.pl
+	./test.x | ${PERL} resultcheck.pl
 
 lint: distribute.lint archive.lint
 distribute.lint: ${DISTSRCS} Makefile
@@ -165,7 +164,7 @@ utest: uidlib.c
 	cc -DTEST -g -o utest uidlib.c
 
 mestab.h: message.tmpl tmpl2c.pl
-	perl tmpl2c.pl <message.tmpl >mestab.h
+	${PERL} tmpl2c.pl <message.tmpl >mestab.h
 
 ###
 archive.o: archive.c patchlevel.h config.h memory.h cdefs.h history.h \

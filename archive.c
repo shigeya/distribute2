@@ -1,4 +1,4 @@
-/* archive.c,v 1.7 1994/08/05 12:04:44 shigeya Exp
+/* $Id$
  *
  * Archiving program for distribute
  *

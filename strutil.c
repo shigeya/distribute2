@@ -1,4 +1,4 @@
-/* strutil.c,v 1.4 1994/02/10 05:40:55 shigeya Exp
+/* $Id$
  *
  * Support library for distrbute+archive
  *

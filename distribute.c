@@ -1,4 +1,4 @@
-/* distribute.c,v 1.30 1994/08/05 12:04:45 shigeya Exp
+/* $Id$
  *
  * distribute - a mailing list distributor: main module
  *
@@ -159,6 +159,9 @@ char *headerfile = NULL;
 char *footerfile = NULL;
 char *archivedir = NULL;
 
+#ifdef CCMAIL
+static int ccmail_error_message = 0;
+#endif
 
 
 /* Macros
@@ -841,6 +844,17 @@ prepare_arguments(argc, argv)
     argappend(" -f");
     argappend(dommaintainer);
     
+#ifdef CCMAIL
+	if (strcmp(subject, "cc:Mail SMTPLINK Undeliverable Message") == 0 ||
+		strcmp(subject, "Message not deliverable") == 0) {
+		ccmail_error_message = 1;
+		argappend(" ");
+		argappend(originator);
+		argappend(" ");
+		argappend(dommaintainer);
+	} else {
+#endif
+
 
     /* read and add recipient list if exits
      */
@@ -862,7 +876,10 @@ prepare_arguments(argc, argv)
 	argappend(" ");
 	argappend(argv[i]);
     }
-    
+#ifdef CCMAIL
+    }
+#endif
+
     
     /*
      * Simple check that the header fields aren't grossly
@@ -1034,7 +1051,9 @@ AddAliasIDToSubject(subjectbuf, subject, aliasid, issuenum)
 		    do {
 			*pp++ = *s;
 		    } while (*s++);
-		}
+		} else {
+                    p = s;
+                }
 	    } else
 		p++;
 	}
@@ -1129,6 +1148,14 @@ send_message()
 	reject = 1;
     }
 
+#ifdef CCMAIL
+    if (ccmail_error_message) {
+	messageprint(pipe, ccmailerr, originator);
+	logwarn("Unsent message: cc:Mail SMTPLINK Undeliverable Message from %s", originator);
+	reject = 1;
+    }
+#endif
+
 #ifdef ISSUE
     if (reject) {
 	issuenum = 0;
@@ -1141,7 +1168,14 @@ send_message()
 	issuenum = getnextissue(issuefile);
     }
 #endif
-    
+
+    /* If message have not reject, then write index now.
+     * (We assume here that sendmail will not fork shell(in this case, archive)
+     * before closing pipe. so archive will run AFTER we correctly wrote index.
+     */
+    if (reject == 0) {
+	write_index();		/* write out index if succeed */
+    }
     
     /* Put out the headers.
      */
@@ -1509,8 +1543,7 @@ main(argc, argv)
     headc = parse_and_clean_header(stdin);
     prepare_arguments(argc, argv);
 
-    if (send_message())		/* really send message */
-	write_index();		/* write out index if succeed */
+    send_message();	/* really send message */
 
     loginfo("\"%s\" sent", subjectbuf);
 

@@ -1,4 +1,4 @@
-/* cdefs.h,v 1.1 1993/05/21 09:20:09 shigeya Exp
+/* $Id$
  *
  *	ANSI C Prototype hacks
  *

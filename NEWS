@@ -1,5 +1,30 @@
 What's new in this release
 
+Mon Jan  6 17:54:45 1997		Shigeya Suzuki
+
+** Makefile Change
+
+	CCMAIL added.  (see cc:Mail hack section for detail.)
+
+** cc:Mail hack
+
+	If you turn CCMAIL flag in Makefile on, special cc:Mail
+	SMTPLINK hack added. Since cc:Mail SMTPLINK don't handle
+	Errors-To: correctly, it may cause mailing list loop, which we
+	don't want.
+
+	Thanks to <pdp@cyber-fleet.com> for providing this hack.
+
+** Bug Fixes
+
+	Now correctly strip un-balanced pair of parnes in subject.
+	which may cause distribute to hang.
+
+	tmpl2pl now work fine with perl 5.
+
+	now write INDEX file before archive run..
+
+
 Tue Apr 20 21:37:34 1993		Shigeya Suzuki
 
 ** Makefile Change

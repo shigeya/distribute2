@@ -1,4 +1,4 @@
-/* header.h,v 1.2 1994/02/13 13:46:44 shigeya Exp */
+/* $Id$ */
 
 #ifndef __HEADER_H__
 #define	__HEADER_H__

@@ -1,4 +1,4 @@
-/* logging.c,v 1.3 1994/02/10 05:40:47 shigeya Exp
+/* $Id$
  *
  * Logging and error handling for distribute+archive
  *

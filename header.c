@@ -1,4 +1,4 @@
-/* header.c,v 1.7 1994/08/05 11:49:30 shigeya Exp */
+/* $Id$ */
 
 /* Routines to read & munge mail & news headers.
 

@@ -1,4 +1,4 @@
-/* memory.h,v 1.4 1994/08/05 11:49:31 shigeya Exp
+/* $Id$
  *
  * Memory related function definitions
  */

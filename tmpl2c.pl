@@ -13,7 +13,7 @@ while (<>) {
 
     if (/^@\s+(.*)/) {
 	$kitname = $1;
-	print "char $kitname[] = \"\\\n";
+	print "char $kitname\[\] = \"\\\n";
 	while (<>) {
 	    last if /^@/;
 	    &jcode'convert(*_, "euc");
@@ -24,7 +24,7 @@ while (<>) {
 	print "\";\n\n\n";
     }
     elsif (/^&\s+(.*)/) {
-	print "struct mestab $1[] = {\n";
+	print "struct mestab $1\[\] = {\n";
 	while (<>) {
 	    last if /^&/;
 	    ($pat, $name, $conversion) = split;

@@ -1,4 +1,4 @@
-/* recipfile.c,v 1.2 1994/08/05 11:49:32 shigeya Exp
+/* $Id$
  *
  * parse recipient file, and construct recipient address buffer
  *

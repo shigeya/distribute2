@@ -1,4 +1,4 @@
-/* recipfile.h,v 1.2 1994/08/05 11:49:33 shigeya Exp
+/* $Id$
  *
  * parse recipfile definitions
  */

@@ -1,4 +1,4 @@
-/* longstr.c,v 1.4 1994/02/10 05:40:48 shigeya Exp
+/* $Id$
  *
  *	Long string handler
  *

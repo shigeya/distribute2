@@ -1,4 +1,4 @@
-/* config.h,v 1.5 1994/02/01 04:07:59 shigeya Exp
+/* $Id$
  *
  *	Distribute configuration information
  */

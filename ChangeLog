@@ -1,3 +1,13 @@
+Mon Jan  6 17:45:17 1997  Shigeya Suzuki  <shigeya@werdna.foretune.co.jp>
+
+	* distribute.c: archive/distribute index 書き込みの順番の問題解決。
+
+	* distribute.c, Makefile, message.tmpl: cc:Mail のバカ bounce 対策
+	  ハック (<pdp@cyber-fleet.com>)
+	* distribute.c: subject paren balancing bug (<matsui@iij-mc.co.jp>)
+
+	* tmpl2c now correctly run on perl5.
+
 Fri Aug  5 21:01:11 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
 
 	* patchlevel=19 FIX

@@ -1,4 +1,4 @@
-/* strutil.h,v 1.4 1994/02/13 13:46:52 shigeya Exp */
+/* $Id$*/
 
 #ifndef __STRUTIL_H__
 #define __STRUTIL_H__

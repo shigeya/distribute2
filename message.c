@@ -1,4 +1,4 @@
-/* message.c,v 1.3 1994/02/10 05:40:51 shigeya Exp
+/* $Id$
  *
  * Messaging functions
  */
