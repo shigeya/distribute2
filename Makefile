@@ -7,6 +7,7 @@
 # Modified by: shin@u-tokyo.ac.jp, toku@dit.co.jp, shigeya@foretune.co.jp
 #		and hiro@is.s.u-tokyo.ac.jp
 #
+RCONFIG=-DRELEASESTATE=\"Alpha/Exp\"
 
 #
 # Available options:
@@ -58,7 +59,7 @@ OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION -DSYSLOG_FACILITY=LOG_LOCAL4
 #
 DESTDIR=
 #
-CFLAGS=	-g ${OPTIONS} ${DEFAULTCONFIG}
+CFLAGS=	-g ${OPTIONS} ${DEFAULTCONFIG} ${RCONFIG}
 
 LIBS=
 MAKE=	make

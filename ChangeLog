@@ -1,3 +1,11 @@
+Wed Jun 16 13:40:26 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* AddAliasIDToSubject/AddAliasIDToHeader各関数を作成し、mainからそ
+	  ちらへ関数を移した。更にメンテしやすいように少々修正。
+
+	* jun@ami.nakahara.fujitsu.co.jp さんのMSCスタイルヘッダのパッチを
+	  マージ。
+
 Mon May 31 15:44:07 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* Patchlevel=5 FIX

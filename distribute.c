@@ -62,6 +62,11 @@ int patchlevel = PATCHLEVEL;
 # define DEF_RECIPIENT_SUFFIX	".rec"
 #endif
 
+#ifdef MSC
+# define DEF_OPENALIAS_CHAR	'['
+# define DEF_CLOSEALIAS_CHAR	']'
+#endif
+
 #ifndef DEF_OPENALIAS_CHAR
 # define DEF_OPENALIAS_CHAR	'('
 #endif
@@ -72,6 +77,10 @@ int patchlevel = PATCHLEVEL;
 #ifndef SYSLOG_FACILITY
 # define SYSLOG_FACILITY	LOG_LOCAL4
 #endif
+
+#define	MAXSUBJLEN	1024	/* we assume subject will no
+				 * longer than this length */
+
 
 extern	int head_parse();
 extern	void head_norm();
@@ -141,6 +150,9 @@ printversion()
 #endif
 #ifdef ISSUE
     fprintf(stderr, " [ISSUE]");
+#endif
+#ifdef MSC
+    fprintf(stderr, " [MSC]");
 #endif
 #ifdef SUBJALIAS
     fprintf(stderr, " [SUBJALIAS]");
@@ -380,6 +392,107 @@ getaliaschar(opench, closech, opt)
     return opterror == 0;
 }
 
+/* AddAliasIDToHeader -- This function format then insert X-SOMETHING style
+ * identifier in header.
+ */
+#if defined(ISSUE)
+AddAliasIDToHeader(pipe, aliasid, issuenum)
+    FILE *pipe;
+    char *aliasid;
+    int issuenum;
+{
+#ifndef MSC			/* NON-MSC case */
+    if (aliasid != NULL) {
+	fprintf(pipe, "X-Sequence: %s %d\n",aliasid,issuenum);
+    }
+    else {
+	fprintf(pipe, "X-Sequence: %d\n",issuenum);
+    }
+#endif
+#ifdef MSC
+    if (aliasid != NULL) {
+	fprintf(pipe, "X-Mail-count: %05d\n",issuenum);
+	fprintf(pipe, "X-Ml-name: %s\n",aliasid);
+    }
+    else {
+	fprintf(pipe, "X-Mail-count: %05d\n",issuenum);
+    }
+#endif
+}
+#endif
+
+
+/* AddAliasIDToSubject -- This function formats Subject: line using original
+ * subject, alias ID and issue number (if needed)
+ */
+#if defined(ISSUE)
+AddAliasIDToSubject(subjectbuf, subject, aliasid, issuenum)
+    char *subjectbuf;
+    char *subject;
+    char *aliasid;
+    int issuenum;
+{
+    if (aliasid != NULL) {
+	char *p = subject;
+	int l;
+	char buf[MAXSUBJLEN];		/* must be enough. */
+	char *openfmt, *subjfmt;
+	
+#ifndef MSC
+	openfmt = "%c%s ";
+	subjfmt = "%c%s %d%c%s";
+#endif
+#ifdef MSC
+	openfmt = "%c%s,";
+	subjfmt = "%c%s,%05d%c%s";
+#endif
+
+	sprintf(buf, openfmt, openaliaschar, aliasid);
+	
+	l = strlen(buf);
+	while (strlen(p) > l) {
+	    if (strncmp(p, buf, l) == 0 && isdigit(p[l])) {
+		register char *pp = p, *s = p + l;
+		while (isdigit(*s))
+		    s++;
+		if (*s == closealiaschar) {
+		    s++;
+		    while (isspace(*s))
+			s++;
+		    if (strncmp(s, "Re:", 3) == 0 ||
+			strncmp(s, "RE:", 3) == 0) {
+			s += 3;
+			while (isspace(*s))
+			    s++;
+		    }
+		    do {
+			*pp++ = *s;
+		    } while (*s++);
+		}
+	    } else
+		p++;
+	}
+	
+	if (issuenum) {
+	    sprintf(subjectbuf, subjfmt,
+		    openaliaschar,
+		    aliasid,issuenum,
+		    closealiaschar,
+		    subject);
+	}
+	else {
+	    printf(subjectbuf, "%c%s%c%s",
+		   openaliaschar,
+		   aliasid,
+		   closealiaschar,
+		   subject);
+	}
+    }
+    else {
+	strcpy(subjectbuf, subject);
+    }
+}
+#endif
 
 /* Main Entry
  */
@@ -397,8 +510,8 @@ char ** argv;
 	char *host = NULL;	/* Name of the list's host */
 	char *senderaddr = NULL;/* sender address for Sender: line */
 	char *header;		/* A pointer to a header */
-	char subject[1024];
-	char subjectbuf[1024];
+	char subject[MAXSUBJLEN];
+	char subjectbuf[MAXSUBJLEN];
 	char *aliasid = NULL;
 	char *sendmailargs = NULL;	/* add'l args to sendmail */
 	char *issuefile = NULL;
@@ -811,61 +924,16 @@ char ** argv;
 	}	
 #endif	
 
-#ifdef ISSUE
-	if (issuenum) {
-#ifdef SUBJALIAS
-		if (aliasid != NULL)
-			fprintf(pipe, "X-Sequence: %s %d\n",aliasid,issuenum);
-		else
-#endif
-			fprintf(pipe, "X-Sequence: %d\n",issuenum);
-	}
+#if defined(ISSUE)
+	if (issuenum)
+	    AddAliasIDToHeader(pipe, aliasid, issuenum);
 #endif
 
-#if defined(ISSUE) && defined(SUBJALIAS)
-	if (aliasid != NULL) {
-		register char *p = subject;
-		register int l;
-		char buf[256];
-		sprintf(buf, "%c%s ", openaliaschar, aliasid);
-		l = strlen(buf);
-		while (strlen(p) > l) {
-			if (strncmp(p, buf, l) == 0 && isdigit(p[l])) {
-				register char *pp = p, *s = p + l;
-				while (isdigit(*s))
-					s++;
-				if (*s == closealiaschar) {
-					s++;
-					while (isspace(*s))
-						s++;
-					if (strncmp(s, "Re:", 3) == 0 ||
-					strncmp(s, "RE:", 3) == 0) {
-						s += 3;
-						while (isspace(*s))
-							s++;
-					}
-					do {
-						*pp++ = *s;
-					} while (*s++);
-				}
-			} else
-				p++;
-		}
-		if (issuenum)
-		    sprintf(subjectbuf, "%c%s %d%c%s",
-			    openaliaschar,
-			    aliasid,issuenum,
-			    closealiaschar,
-			    subject);
-		else
-		    printf(subjectbuf, "%c%s%c%s",
-			    openaliaschar,
-			    aliasid,
-			    closealiaschar,
-			    subject);
-	} else
+#if defined(SUBJALIAS)
+	AddAliasIDToSubject(subjectbuf, subject, aliasid, issuenum);
+#else
+	strcpy(subjectbuf, subject);
 #endif
-	    strcpy(subjectbuf, subject);
 
 	fprintf(pipe, "Subject: %s\n", subjectbuf);
 
