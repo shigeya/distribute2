@@ -69,11 +69,12 @@ OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION \
 DESTDIR=
 #
 CFLAGS=	-g ${OPTIONS} ${DEFAULTCONFIG} ${RCONFIG}
-# -Wall
+#-Wall
 
 LIBS=
 MAKE=	make
-CC= 	${PURIFY} ${PURIFYOPTS} cc 
+CC= 	${PURIFY} ${PURIFYOPTS} gcc
+#-D__USE_FIXED_PROTOTYPES__
 
 WHERE=	/usr/local/libexec
 MANDIR=	/usr/local/man
@@ -175,6 +176,7 @@ utest: uidlib.c
 mestab.h: message.tmpl tmpl2c.pl
 	${PERL} tmpl2c.pl <message.tmpl >mestab.h
 
+
 ###
 archive.o: archive.c patchlevel.h config.h memory.h cdefs.h history.h \
 	pathutil.h header.h
@@ -189,4 +191,4 @@ memory.o: memory.c
 message.o: message.c message.h cdefs.h longstr.h
 pathutil.o: pathutil.c config.h memory.h cdefs.h pathutil.h
 recipfile.o: recipfile.c longstr.h cdefs.h
-strutil.o: strutil.c
+strutil.o: strutil.c strsep.c

@@ -30,6 +30,9 @@
 #ifdef SYSLOG
 # include <syslog.h>
 #endif
+#ifdef DEBUGLOG
+FILE	*debuglog;
+#endif
 
 #include "patchlevel.h"		/* version identifier */
 
@@ -75,7 +78,6 @@ parse_options(argc, argv)
     char **argv;
 {
     extern char *optarg;
-    extern int optind;
     int c;
 
     while ((c = getopt(argc, argv, "M:N:C:Z:Y:jDR?")) != EOF) {

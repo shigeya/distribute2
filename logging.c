@@ -10,6 +10,11 @@
 #include <sysexits.h>
 #include <stdlib.h>
 
+#ifdef	DEBUGLOG
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
 #ifdef __STDC__
 #include <stdarg.h>
 #endif
@@ -40,18 +45,22 @@ void
 init_log(tag)
     char* tag;
 {
+#ifdef DEBUGLOG
+    char logfile[80];
+    extern FILE *debuglog;
+#endif
+
 #ifdef SYSLOG	
     openlog(tag, LOG_PID, SYSLOG_FACILITY);
 #endif
 #ifdef DEBUGLOG
-    char logfile[80];
     sprintf(logfile, "/tmp/%s.log", tag);
-    debuglog = fopen(, "a");
+    debuglog = fopen(logfile, "a");
     if (debuglog == NULL) {
 	logandexit(EX_UNAVAILABLE, "can't open debug log", logfile);
     }
     fprintf(debuglog, "---\n");
-    fprintf(debuglog, "invoked: pid=%d\n", getpid());
+    fprintf(debuglog, "invoked: pid=%ld\n", (long)getpid());
     fflush(debuglog);
 #endif
     logbuf = xmalloc(LOGBUFSIZE);

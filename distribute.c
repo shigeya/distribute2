@@ -193,6 +193,7 @@ static int ccmail_error_message = 0;
  */
 void cleanheader __P((int headc, char** headv));
 void write_index __P((void));
+int acceptcheck __P((char*, char*));
 
 /*
  * Check to see if a message appears to be an administrative one,
@@ -218,6 +219,7 @@ checkadmin(infile, newfile)
     int count = 0;
     int crcount = 0;
     int subscribe = 0;
+    int unsubscribe = 0;
     int c;
     char word[128];
     
@@ -244,6 +246,8 @@ checkadmin(infile, newfile)
 
 	    if (EQ(word, "subscribe"))
 		subscribe++;
+	    if (EQ(word, "unsubscribe") || EQ(word, "unsub"))
+		unsubscribe++;
 	    
 	    if (pound_start &&
 		(EQ(word, "# help") || EQ(word, "# db get") ||
@@ -251,7 +255,7 @@ checkadmin(infile, newfile)
 		hml_noise++;
 	    }
 	    else if (EQ(word, "remove") || EQ(word, "drop") ||
-		EQ(word, "off") || subscribe ||
+		EQ(word, "off") || subscribe || unsubscribe ||
 		EQ(word, "get") || EQ(word, "add"))
 		drop_or_add++;
 	    else if (EQ(word, "from") || EQ(word, "to"))
@@ -268,7 +272,7 @@ checkadmin(infile, newfile)
     /* Use fancy-shmancy AI techniques to determine what the message is. */
     return (count < 40 && crcount < 5 &&
 	   ((drop_or_add && from_or_to && mail_word) || hml_noise))
-	|| (count < 15 && crcount < 5 && subscribe);
+	|| (count < 15 && crcount < 5 && (subscribe || unsubscribe));
 }
 
 /* Long argument handling
@@ -443,7 +447,6 @@ parse_options(argc, argv)
     char **argv;
 {
     extern char *optarg;
-    extern int optind;
 
     int optionerror = 0;
     int c;
@@ -979,10 +982,10 @@ prepare_arguments(argc, argv)
 
     argappend(" -f");
     argappend(dommaintainer);
-    argappend(" ");
     
     /* only to maintainer */    
     if (badnewsheader || badoriginator || ccmail_error_message) {
+	argappend(" ");
 	if (senderaddr != NULL) {
 	    argappend(senderaddr);
 	}
@@ -993,6 +996,7 @@ prepare_arguments(argc, argv)
 
     /* originator + maintainer */
     else if (badhdr || accept_error || wasrejected || wasadmin) {
+	argappend(" ");
 	if (senderaddr != NULL) {
 	    argappend(senderaddr);
 	}
@@ -1006,10 +1010,12 @@ prepare_arguments(argc, argv)
     /* If no error, append regular recipients */
     else {
 	if (recipientbuf != NULL) {
+	    argappend(" ");
 	    argappend(recipientbuf);
 	}
 
 	for (i = optind ; i < argc ; i++) {
+	    argappend(" ");
 	    argappend(argv[i]);
 	}
     }
