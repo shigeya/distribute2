@@ -210,7 +210,6 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
 
 dnl Checks for library functions.
-AC_FUNC_MEMCMP
 AC_CHECK_FUNCS(gethostname strspn strstr flock lockf strchr strrchr memcpy memcmp sysinfo vsnprintf)
 AC_REPLACE_FUNCS(strsep)
 
