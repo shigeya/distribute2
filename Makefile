@@ -24,7 +24,8 @@ MANSEC=	1
 # C source files
 SRCS=		distribute.c header.c
 HDRS=		util.h
-MISCSRC=	ChangeLog README distribute.1 Makefile Makefile.pmake
+MISCSRC=	ChangeLog README README.FIRST \
+		distribute.1 Makefile Makefile.pmake
 KITFILES=	${SRCS} ${HDRS} ${MISCSRC}
 
 all: distribute

@@ -1,5 +1,7 @@
 Wed Mar 31 17:06:44 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
+	* Added README.FIRST
+
 	* Distribution に Makefile.pmake を追加 (for BSD/386)
 
 	* 高田さんからのフィードバックを元にリリースキット作成
