@@ -66,10 +66,12 @@ OWNER=	daemon
 GROUP=	daemon
 
 # C source files
-SRCS=		distribute.c header.c
-HDRS=		util.h
+SRCS=		distribute.c header.c longstr.c
+HDRS=		util.h longstr.h cdefs.h patchlevel.h
 MISCSRC=	ChangeLog README README.FIRST NEWS \
-		distribute.1 Makefile Makefile.pmake
+		distribute.1 Makefile Makefile.pmake \
+		resultcheck.pl
+
 KITFILES=	${SRCS} ${HDRS} ${MISCSRC}
 
 OBJS=		distribute.o header.o longstr.o
