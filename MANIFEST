@@ -7,6 +7,7 @@ CREDITS			Credits
 ChangeLog		The Change Log (in Japanese/English)
 BugList			Current known bug list
 MANIFEST		THIS file
+Makefile.in		Makefile template
 Makefile.pre		Makefile previously used
 Makefile.pmake		Makefile for pmake
 NEWS			Latest NEWS, or modification
