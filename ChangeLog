@@ -1,3 +1,9 @@
+Wed Apr 21 02:23:45 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* install 先を /usr/bin, /usr/manにデフォルト変更
+
+	* install の mode などを変更。suidするのは危険なのでやめた。
+
 Tue Apr 20 18:24:52 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* Make dependency を正しくした。

@@ -57,14 +57,13 @@ CFLAGS=	-g ${OPTIONS} ${DEFAULTCONFIG}
 
 LIBS=
 MAKE=	make
-WHERE=	/usr/local/lib
-MANDIR=	/usr/local/man
+WHERE=	/usr/lib
+MANDIR=	/usr/man
 MANSEC=	1
 
 # Install as
-OWNER=	root
-GROUP=	wheel
-MODE=	4755
+OWNER=	daemon
+GROUP=	daemon
 
 # C source files
 SRCS=		distribute.c header.c
@@ -79,7 +78,7 @@ distribute: distribute.o header.o
 	${CC} ${CFLAGS} -o distribute distribute.o header.o
 
 install: distribute distribute.1
-	install -s -o ${OWNER} -g ${GROUP} -m ${MODE} distribute \
+	install -s -o ${OWNER} -g ${GROUP} -m 511 distribute \
 		${DESTDIR}${WHERE}
 	install -m 444 distribute.1 \
 		${DESTDIR}${MANDIR}/man${MANSEC}/distribute.${MANSEC}
