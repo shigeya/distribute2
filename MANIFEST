@@ -8,6 +8,7 @@ Makefile.pmake		Makefile for pmake
 NEWS			Latest NEWS, or modification
 README			Original README
 README.FIRST		Our README
+config.h		Parameter Configuration File
 distribute.1		Man page
 distribute.c		Main
 header.c		Header parser
