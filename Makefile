@@ -7,7 +7,7 @@
 # Modified by: shin@u-tokyo.ac.jp, toku@dit.co.jp, shigeya@foretune.co.jp
 #		and hiro@is.s.u-tokyo.ac.jp
 #
-RCONFIG=-DRELEASESTATE=\"Alpha+/Exp\"
+RCONFIG=-DRELEASESTATE=\"Alpha\"
 
 #
 # Available options:
@@ -19,7 +19,7 @@ RCONFIG=-DRELEASESTATE=\"Alpha+/Exp\"
 # 	-DSYSLOG_FACILITY=n	-- value for syslogd's facility value
 #				   defaulted to LOG_LOCAL4
 #
-OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION -DSYSLOG_FACILITY=LOG_LOCAL4 -DDEBUGLOG
+OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION -DSYSLOG_FACILITY=LOG_LOCAL4
 #
 
 #
