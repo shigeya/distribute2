@@ -64,17 +64,33 @@ fi
 AC_MSG_RESULT($dis_cv_msc)
 
 dnl Default settings.  Modifyable with "env" commmand. (careful with quoting!)
-AC_DEFINE_UNQUOTED(DEF_SEQ_PATH, ${DEF_SEQ_PATH-"/usr/lib/mail-list"})
-AC_DEFINE_UNQUOTED(DEF_RECIPIENT_PATH,
-	${DEF_RECIPIENT_PATH-"/usr/lib/mail-list"})
-AC_DEFINE_UNQUOTED(DEF_ARCHIVE_PATH, ${DEF_ARCHIVE_PATH-"/var/spool/mail-list"})
-AC_DEFINE_UNQUOTED(DEF_MAJORDOMO_RECIPIENT_PATH,
-	${DEF_MAJORDOMO_RECIPIENT_PATH-"/usr/lib/mail-list/majordomo/lists"})
-AC_DEFINE_UNQUOTED(DEF_SEQ_SUFFIX, ${DEF_SEQ_SUFFIX-".seq"})
-AC_DEFINE_UNQUOTED(DEF_RECIPIENT_SUFFIX, ${DEF_RECIPIENT_SUFFIX-".rec"})
-AC_DEFINE_UNQUOTED(DEF_ACCEPT_SUFFIX, ${DEF_ACCEPT_SUFFIX-".acc"})
-AC_DEFINE_UNQUOTED(DEF_REJECT_SUFFIX, ${DEF_REJECT_SUFFIX-".rej"})
-AC_DEFINE_UNQUOTED(DEF_INDEX_NAME, ${DEF_INDEX_NAME-"INDEX"})
+
+dis_cv_seq_path=${DEF_SEQ_PATH-"/usr/lib/mail-list"}
+AC_DEFINE_UNQUOTED(DEF_SEQ_PATH, "$dis_cv_seq_path")
+
+dis_cv_recipient_path=${DEF_RECIPIENT_PATH-"/usr/lib/mail-list"}
+AC_DEFINE_UNQUOTED(DEF_RECIPIENT_PATH, "$dis_cv_recipient_path")
+
+dis_cv_archive_path=${DEF_ARCHIVE_PATH-"/var/spool/mail-list"}
+AC_DEFINE_UNQUOTED(DEF_ARCHIVE_PATH, "$dis_cv_archive_path")
+
+dis_cv_majordomo_rp=${DEF_MAJORDOMO_RECIPIENT_PATH-"/usr/lib/mail-list/majordomo/lists"}
+AC_DEFINE_UNQUOTED(DEF_MAJORDOMO_RECIPIENT_PATH, "$dis_cv_majordomo_rp")
+
+dis_cv_seq_suffix=${DEF_SEQ_SUFFIX-".seq"}
+AC_DEFINE_UNQUOTED(DEF_SEQ_SUFFIX, "$dis_cv_seq_suffix")
+
+dis_cv_recipient_suffix=${DEF_RECIPIENT_SUFFIX-".rec"}
+AC_DEFINE_UNQUOTED(DEF_RECIPIENT_SUFFIX, "$dis_cv_recipient_suffix")
+
+dis_cv_accept_suffix=${DEF_ACCEPT_SUFFIX-".acc"}
+AC_DEFINE_UNQUOTED(DEF_ACCEPT_SUFFIX, "$dis_cv_accept_suffix")
+
+dis_cv_reject_suffix=${DEF_REJECT_SUFFIX-".rej"}
+AC_DEFINE_UNQUOTED(DEF_REJECT_SUFFIX, "$dis_cv_reject_suffix")
+
+dis_cv_index_name=${DEF_INDEX_NAME-"INDEX"}
+AC_DEFINE_UNQUOTED(DEF_INDEX_NAME, "$dis_cv_index_name")
 
 dnl Optional settings.
 if test "x$DEF_DOMAINNAME" != x; then
