@@ -149,7 +149,7 @@ printversion()
 #ifdef DEF_DOMAINNAME
     fprintf(stderr, "\t Default Domain Name: %s\n", DEF_DOMAINNAME);
 #endif
-#ifndef DEF_ARCHIVE_PATH
+#ifdef DEF_ARCHIVE_PATH
     fprintf(stderr, "\t Default Archive Directory: %s\n", DEF_ARCHIVE_PATH);
 #endif
     fprintf(stderr, "\t Recipient file default path: %s\n", DEF_RECIPIENT_PATH);
@@ -696,7 +696,7 @@ char ** argv;
 #endif		    
                 case 'C':
 		    archivedir = optarg;
-	    break;
+		    break;
 
 		default:
 		    usage();
