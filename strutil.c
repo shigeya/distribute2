@@ -126,7 +126,3 @@ chopatlf(s)
     }
     return top;
 }
-
-#ifdef STRSEP_MISSING
-# include "strsep.c"
-#endif

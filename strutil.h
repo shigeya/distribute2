@@ -7,18 +7,18 @@
 # include "cdefs.h"
 #endif
 
-#ifdef STRSTR_MISSING
-char *strstr __P((char*, char*));
+#ifndef HAVE_STRSTR
+extern char *strstr __P((char*, char*));
 #endif
 
-#ifdef STRSEP_MISSING
-char *strsep __P((char**, char*));
+#ifndef HAVE_STRSEP
+extern char *strsep __P((char**, char*));
 #endif
 
-char *strcpycut __P((char*, char*, size_t));
-char *skiptononspace __P((char*));
-char *chopatcr __P((char*));
-char *changech __P((char*, int, int));
-char *chopatlf __P((char*));
+extern char *strcpycut __P((char*, char*, size_t));
+extern char *skiptononspace __P((char*));
+extern char *chopatcr __P((char*));
+extern char *changech __P((char*, int, int));
+extern char *chopatlf __P((char*));
 
 #endif

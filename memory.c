@@ -96,3 +96,21 @@ strspappend(d, s)
     strcat(d, s);
     return d;
 }
+
+/* copy just like strncpy, but spare one byte null pad at the end
+ * and do put a null at end of buffer always.
+ */
+
+char*
+xstrncpy(d,s,n)
+    char* d;
+    char* s;
+    int n;
+{
+    if (n > 0) {
+	strncpy(d,s,n-1);
+	d[n-1] = '\0';
+    }
+    return d;
+}
+    

@@ -19,6 +19,8 @@
 
 #ifdef __STDC__
 #include <stdarg.h>
+#else
+#include <varargs.h>
 #endif
 
 #include "cdefs.h"
@@ -33,7 +35,7 @@
 # define   LOG_INFO	3
 #endif
 
-#define LOGBUFSIZE	1024
+#define LOGBUFSIZE	1024	/* for safety */
 
 #include "logging.h"
 #include "memory.h"
@@ -115,119 +117,95 @@ logerror_buf(pri, prefix)
 }
 
 
-#ifdef __STDC__
-
 void
+#ifdef __STDC__
 logerror(char* fmt, ...)
+#else
+logerror(fmt, va_alist)
+	char *fmt;
+	va_dcl
+#endif
 {
     va_list ap;
     va_start(ap, fmt);
-    /* vsnprintf is available everywhere?? -- may be.*/
+#ifdef HAVE_VSNPRINTF
     vsnprintf(logbuf, logbuf_size, fmt, ap);
+#else
+    vsprintf(logbuf, fmt, ap);
+#endif
     va_end(ap);
     logerror_buf(LOG_ERR, "Error: ");
 }
 
-#else
 
 void
-logerror(fmt, a1, a2)
-    char* fmt;
-    char* a1;
-    char* a2;
-{
-    sprintf(logbuf, fmt, a1, a2); /* they may not have snprintf also.. */
-    logerror_buf(LOG_ERR, "Error: ");
-}
-
-#endif
-
-
 #ifdef __STDC__
-
-void
 logwarn(char* fmt, ...)
+#else
+logwarn(fmt, va_alist)
+	char *fmt;
+	va_dcl
+#endif
 {
     va_list ap;
     va_start(ap, fmt);
+#ifdef HAVE_VSNPRINTF
     vsnprintf(logbuf, logbuf_size, fmt, ap);
+#else
+    vsprintf(logbuf, fmt, ap);
+#endif
     va_end(ap);
     logerror_buf(LOG_WARNING, "Warning: ");
 }
 
-#else
 
 void
-logwarn(fmt, a1, a2)
-    char* fmt;
-    char* a1;
-    char* a2;
-{
-    sprintf(logbuf, fmt, a1, a2);
-    logerror_buf(LOG_WARNING, "Warning: ");
-}
-
-#endif
-
-
 #ifdef __STDC__
-
-void
 loginfo(char* fmt, ...)
+#else
+loginfo(fmt, va_alist)
+	char *fmt;
+	va_dcl
+#endif
 {
     va_list ap;
     va_start(ap, fmt);
+#ifdef HAVE_VSNPRINTF
     vsnprintf(logbuf, logbuf_size, fmt, ap);
+#else
+    vsprintf(logbuf, fmt, ap);
+#endif
     va_end(ap);
     logerror_buf(LOG_INFO, "Info: ");
 }
-
-#else
-
-void loginfo(fmt, a1, a2)
-    char* fmt;
-    char* a1;
-    char* a2;
-{
-    sprintf(logbuf, fmt, a1, a2);
-    logerror_buf(LOG_INFO, "Info: ");
-}
-
-#endif
 
 
 /* log it then exit with error code
  */
 
-#ifdef __STDC__
 void
+#ifdef __STDC__
 logandexit(int exitcode, char* fmt, ...)
+#else
+logandexit(exitcode, fmt, va_alist)
+	int exitcode;
+	char *fmt;
+	va_dcl
+#endif
 {
     va_list ap;
     va_start(ap, fmt);
-    vsprintf(logbuf, fmt, ap);	/* vsnprintf is available everywhere?? */
+#ifdef HAVE_VSNPRINTF
+    vsnprintf(logbuf, logbuf_size, fmt, ap);
+#else
+    vsprintf(logbuf, fmt, ap);
+#endif
     va_end(ap);
 
     logerror_buf(NULL);
 
     exit(exitcode);
 }
-
-#else
-
-void
-logandexit(exitcode, fmt, a1, a2)
-    int exitcode;
-    char* fmt;
-    char* a1;
-    char* a2;
-{
-    sprintf(logbuf, fmt, a1, a2);
-    logerror_buf(NULL);
-    exit(exitcode);
-}
-
-#endif
 
 
 

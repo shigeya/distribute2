@@ -11,12 +11,12 @@
 # include "cdefs.h"
 #endif
 
-int head_parse __P((int, char**, FILE*));
-void head_norm __P((char*));
-void head_blank __P((char*));
-char * head_find __P((int, char**, char*));
-char * head_delete __P((int, char**, char*));
-void head_free __P((int, char**));
+extern int head_parse __P((int, char**, FILE*));
+extern void head_norm __P((char*));
+extern void head_blank __P((char*));
+extern char * head_find __P((int, char**, char*));
+extern char * head_delete __P((int, char**, char*));
+extern void head_free __P((int, char**));
 
 struct msgHeader {
     char from[MAXADDRLEN];

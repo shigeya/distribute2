@@ -828,10 +828,16 @@ init_distribute()
 #ifdef DEF_DOMAINNAME
     host = DEF_DOMAINNAME;
 #else
-#ifdef HAVE_SYS5_PTY
-    sysinfo(SI_HOSTNAME, myhostname, (long) sizeof(myhostname));
-#else
+
+#ifdef HAVE_GETHOSTNAME
     gethostname(myhostname, sizeof(myhostname));
+#else
+# ifdef HAVE_SYSINFO
+    sysinfo(SI_HOSTNAME, myhostname, (long) sizeof(myhostname));
+# else
+    error
+# endif
+    
 #endif
     host = myhostname;
 #endif
@@ -866,7 +872,7 @@ parse_and_clean_header(file)
     if (newstrim) {
 	char frombuf[MAXADDRLEN];
 	if ((header = head_find(headc, headv, "From:")) != NULL) {
-	    strncpy(frombuf, header, sizeof(frombuf)-1);
+	    xstrncpy(frombuf, header, sizeof(frombuf));
 	    header = normalizeaddr(frombuf);
 
 	    if (header != NULL && strcmp(newstrim, header) == 0) {
@@ -886,7 +892,7 @@ parse_and_clean_header(file)
     if ((header = head_find(headc, headv, "Sender:")) != NULL) {
 	header = normalizeaddr(header + sizeof("Sender:") - 1);
 	if (header != NULL) {
-	    strncpy(origMsg.sender, header, sizeof(origMsg.sender)-1);
+	    xstrncpy(origMsg.sender, header, sizeof(origMsg.sender));
 	}
 	else {
 	    origMsg.sender[0] = '\0';
@@ -895,7 +901,7 @@ parse_and_clean_header(file)
     if ((header = head_find(headc, headv, "Return-Path:")) != NULL) {
 	header = normalizeaddr(header + sizeof("Return-Path:") - 1);
 	if (header != NULL) {
-	    strncpy(origMsg.returnpath, header, sizeof(origMsg.returnpath)-1);
+	    xstrncpy(origMsg.returnpath, header, sizeof(origMsg.returnpath));
 	}
 	else {
 	    origMsg.returnpath[0] = '\0';
@@ -904,7 +910,7 @@ parse_and_clean_header(file)
     if ((header = head_find(headc, headv, "From:")) != NULL) {
 	header = normalizeaddr(header + sizeof("From:") - 1);
 	if (header != NULL) {
-	    strncpy(origMsg.from, header, sizeof(origMsg.from)-1);
+	    xstrncpy(origMsg.from, header, sizeof(origMsg.from));
 	}
 	else {
 	    origMsg.from[0] = '\0';
@@ -913,7 +919,7 @@ parse_and_clean_header(file)
     if ((header = head_find(headc, headv, "Reply-To:")) != NULL) {
 	header = normalizeaddr(header + sizeof("Reply-To:") - 1);
 	if (header != NULL) {
-	    strncpy(origMsg.replyto, header, sizeof(origMsg.replyto)-1);
+	    xstrncpy(origMsg.replyto, header, sizeof(origMsg.replyto));
 	}
 	else {
 	    origMsg.replyto[0] = '\0';
@@ -921,13 +927,13 @@ parse_and_clean_header(file)
     }
 
     if (origMsg.sender[0] != '\0')
-	strncpy(originator, origMsg.sender, sizeof(originator)-1);
+	xstrncpy(originator, origMsg.sender, sizeof(originator));
     else if (origMsg.returnpath[0] != '\0')
-	strncpy(originator, origMsg.returnpath, sizeof(originator)-1);
+	xstrncpy(originator, origMsg.returnpath, sizeof(originator));
     else if (origMsg.from[0] != '\0')
-	strncpy(originator, origMsg.from, sizeof(originator)-1);
+	xstrncpy(originator, origMsg.from, sizeof(originator));
     else if (origMsg.replyto[0] != '\0')
-	strncpy(originator, origMsg.replyto, sizeof(originator)-1);
+	xstrncpy(originator, origMsg.replyto, sizeof(originator));
     else
 	strcpy(originator, "postmaster");
 
@@ -983,7 +989,7 @@ parse_and_clean_header(file)
     /* set maintainer
      */
     if (senderaddr != NULL) {
-	strncpy(maintainer, senderaddr, sizeof(maintainer)-1);
+	xstrncpy(maintainer, senderaddr, sizeof(maintainer));
     }
     else {
 	if (majordomo || useowner)
@@ -1003,7 +1009,7 @@ parse_and_clean_header(file)
 	snprintf(dommaintainer, sizeof(dommaintainer),
 		 "%s@%s", maintainer, host);
     else
-	strncpy(dommaintainer, maintainer, sizeof(dommaintainer)-1);
+	xstrncpy(dommaintainer, maintainer, sizeof(dommaintainer));
 
     return headc;
 }
@@ -1244,7 +1250,7 @@ MIME_makeSubj(s)
     p = (char*) malloc(sizeof(r));
     if (p == NULL)
 	return s;		/* NG -- return as is. */
-    strncpy(p, r, sizeof(r)-1);
+    xstrncpy(p, r, sizeof(r));
     return(p);
 }
 #endif
@@ -1358,7 +1364,7 @@ AddAliasIDToSubject(subjectbuf, subjectbuf_size, subject, aliasid, issuenum)
 	}
     }
     else {
-	strncpy(subjectbuf, subject, subjectbuf_size);
+	xstrncpy(subjectbuf, subject, subjectbuf_size);
     }
 }
 #endif
@@ -1512,7 +1518,7 @@ send_message()
     
 #ifdef USE_MIMEKIT
     if (usemimekit) {
-	strncpy(subject, MIME_makeSubj(subject), sizeof(subject)-1);
+	xstrncpy(subject, MIME_makeSubj(subject), sizeof(subject));
     }
 #endif
     
@@ -1520,12 +1526,12 @@ send_message()
     AddAliasIDToSubject(subjectbuf, sizeof(subjectbuf),
 			subject, aliasid, issuenum);
 #else
-    strncpy(subjectbuf, subject, sizeof(subjectbuf)-1);
+    xstrncpy(subjectbuf, subject, sizeof(subjectbuf));
 #endif
 
 #ifdef USE_MIMEKIT
     if (usemimekit) {
-	strncpy(subjectbuf, MIME_makeSubj(subjectbuf), sizeof(subjectbuf)-1);
+	xstrncpy(subjectbuf, MIME_makeSubj(subjectbuf), sizeof(subjectbuf));
     }
 #endif
 
@@ -1867,7 +1873,7 @@ write_index()
 	}
 	else {
 	    char sbuf[MAXSUBJLEN];
-	    strncpy(sbuf, subjectbuf, sizeof(sbuf)-1);
+	    xstrncpy(sbuf, subjectbuf, sizeof(sbuf));
 	    changech(sbuf, '\n', ' '); /* don't want LF in history file*/
 
 	    (void)openhistory(index_name, "a+");

@@ -23,13 +23,13 @@ struct history {
     char	*h_subject;
 };
 
-void openhistory __P((char*, char*));
-void closehistory __P(());
+extern void openhistory __P((char*, char*));
+extern void closehistory __P(());
 
-struct history* findhistory __P((int));
-void appendhistory __P((int, int, char*, char*));
-void freehistory __P((struct history*));
+extern struct history* findhistory __P((int));
+extern void appendhistory __P((int, int, char*, char*));
+extern void freehistory __P((struct history*));
 
-int fputs_sum __P((char*, FILE*, int*));
+extern int fputs_sum __P((char*, FILE*, int*));
 
 #endif

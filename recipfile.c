@@ -37,8 +37,8 @@
 #include "longstr.h"
 #include "memory.h"
 
-extern void logandexit();
-extern void logwarn();
+extern void logandexit __P((int, char *, ...));
+extern void logwarn __P((char *, ...));
 
 
 /* normalizeaddr -- check one address and normalize it if necessary.
@@ -60,7 +60,7 @@ normalizeaddr(buf)
     p = malloc(sizeof(char) * MAXADDRLEN);
     tp = p;
 
-    strncpy(tp, buf, MAXADDRLEN-1);
+    xstrncpy(tp, buf, MAXADDRLEN);
     while (*tp == ' ' || *tp == '\t')
 	tp++;
 
@@ -152,7 +152,7 @@ normalizeaddr(buf)
     }
 
     tp = malloc(sizeof(char) * MAXADDRLEN);
-    strncpy(tp, beginp, MAXADDRLEN-1);
+    xstrncpy(tp, beginp, MAXADDRLEN);
     free(p);
 
     return tp;
@@ -214,6 +214,12 @@ parserecipfile(filename, errormode)
 
 
 #ifdef TEST
+#ifdef __STDC__
+#include <stdarg.h>
+#else
+#include <varargs.h>
+#endif
+
 main(ac, av)
     int ac;
     char **av;
@@ -247,26 +253,43 @@ test(s1)
     printf ("target = %s, result='%s'\n", s1, normalizeaddr(buf));
 }
 
-logandexit(exitcode, fmt, a1, a2)
-    int exitcode;
-    char *fmt;
-    char *a1, *a2;
+void
+#ifdef __STDC__
+logandexit(int exitcode, char* fmt, ...)
+#else
+logandexit(exitcode, fmt, va_alist)
+	int exitcode;
+	char *fmt;
+	va_dcl
+#endif
 {
+    va_list ap;
+
     fprintf(stderr, "[EXITCODE=%d] ", exitcode);
-    fprintf(stderr, fmt, a1, a2);
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
     exit(exitcode);
 }
 
-logwarn(fmt, a1, a2)
-    char *fmt;
-    char *a1, *a2;
+void
+#ifdef __STDC__
+logwarn(char* fmt, ...)
+#else
+logwarn(fmt, va_alist)
+	char *fmt;
+	va_dcl
+#endif
 {
-    fprintf(stderr, fmt, a1, a2);
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
 }
 
 /* allocate or fail
  */
-void*
+char*
 xmalloc(len)
     size_t len;
 {
@@ -280,9 +303,9 @@ xmalloc(len)
 
 /* reallocate or fail
  */
-void*
+char*
 xrealloc(p, len)
-    void *p;
+    char *p;
     size_t len;
 {
     void *np;

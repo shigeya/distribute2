@@ -9,11 +9,12 @@
 # include "cdefs.h"
 #endif
 
-char *xrealloc __P((char*, size_t));
-char *xmalloc __P((size_t));
-char *strsave __P((char*));
-char *memsave __P((char*, size_t));
-char *strappend __P((char*, char*));
-char *strspappend __P((char*, char*));
+extern char *xrealloc __P((char*, size_t));
+extern char *xmalloc __P((size_t));
+extern char *strsave __P((char*));
+extern char *memsave __P((char*, size_t));
+extern char *strappend __P((char*, char*));
+extern char *strspappend __P((char*, char*));
+extern char *xstrncpy __P((char*,char*,int));
 
 #endif

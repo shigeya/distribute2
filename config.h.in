@@ -1,5 +1,8 @@
 /* config.h.in.  Generated automatically from configure.in by autoheader.  */
 
+/* Define to empty if the keyword does not work.  */
+#undef const
+
 /* Define to `unsigned' if <sys/types.h> doesn't define.  */
 #undef size_t
 
@@ -100,11 +103,20 @@
 /* Define if you have the strrchr function.  */
 #undef HAVE_STRRCHR
 
+/* Define if you have the strsep function.  */
+#undef HAVE_STRSEP
+
 /* Define if you have the strspn function.  */
 #undef HAVE_STRSPN
 
 /* Define if you have the strstr function.  */
 #undef HAVE_STRSTR
+
+/* Define if you have the sysinfo function.  */
+#undef HAVE_SYSINFO
+
+/* Define if you have the vsnprintf function.  */
+#undef HAVE_VSNPRINTF
 
 /* Define if you have the <fcntl.h> header file.  */
 #undef HAVE_FCNTL_H

@@ -31,9 +31,7 @@
  * SUCH DAMAGE.
  */
 
-/*
 #include <sys/cdefs.h>
-*/
 #include <string.h>
 #include <stdio.h>
 
@@ -55,10 +53,10 @@ static char sccsid[] = "@(#)strsep.c	8.1 (Berkeley) 6/4/93";
 char *
 strsep(stringp, delim)
 	register char **stringp;
-	register /*const*/ char *delim;
+	register const char *delim;
 {
 	register char *s;
-	register /*const*/ char *spanp;
+	register const char *spanp;
 	register int c, sc;
 	char *tok;
 

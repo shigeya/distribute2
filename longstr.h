@@ -22,11 +22,11 @@ struct longstr {
 
 #define	LONGSTR_CHUNK	10240	/* default allocation chunk */
 
-void ls_init __P((struct longstr*));
-void ls_reset __P((struct longstr*));
-void ls_grow __P((struct longstr*, size_t));
-void ls_append __P((struct longstr*, char*, size_t));
-void ls_appendstr __P((struct longstr*, char*));
-void ls_appendchar __P((struct longstr*, int));
+extern void ls_init __P((struct longstr*));
+extern void ls_reset __P((struct longstr*));
+extern void ls_grow __P((struct longstr*, size_t));
+extern void ls_append __P((struct longstr*, char*, size_t));
+extern void ls_appendstr __P((struct longstr*, char*));
+extern void ls_appendchar __P((struct longstr*, int));
 
 #endif
