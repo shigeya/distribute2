@@ -1252,7 +1252,7 @@ send_message()
 		dommaintainer);
 	reject = 1;
     } else if (accept_error) {
-	messageprint(pipe, notallowed, dommaintainer);
+	messageprint(pipe, notallowed, originator);
 	logwarn("Unsent message: Can't accept message from %s. Bounce to %s also",
 		originator, dommaintainer);
 	reject = 1;
