@@ -1063,7 +1063,7 @@ acceptcheck(buf, pat)
     if (strlen(pat) > sizeof(patbuf)/2)
 	return 0;
     
-    snprintf(patbuf, "'%s'", pat); /* cheat hack */
+    sprintf(patbuf, "'%s'", pat); /* cheat hack */
     p = strstr(buf, patbuf);
     len = strlen(patbuf);
     
