@@ -746,16 +746,16 @@ parse_and_clean_header(file)
      * then send to postmaster
      */
     if ((header = head_find(headc, headv, "Sender:")) != NULL) {
-	originator = header + sizeof("Sender:")-1;
+	originator = header + sizeof("Sender:") - 1;
     }
     else if ((header = head_find(headc, headv, "Return-Path:")) != NULL) {
-	originator = header + sizeof("Return-Path:")-1;
+	originator = header + sizeof("Return-Path:") - 1;
     }
     else if ((header = head_find(headc, headv, "From:")) != NULL) {
-	originator = header + sizeof("From:")-1;
+	originator = header + sizeof("From:") - 1;
     }
     else if ((header = head_find(headc, headv, "Reply-To:")) != NULL) {
-	originator = header + sizeof("Reply-To:")-1;
+	originator = header + sizeof("Reply-To:") - 1;
     }
     else {
 	originator = "postmaster";
@@ -843,7 +843,7 @@ parse_and_clean_header(file)
 	    free(header);
     }
 
-    if (index(maintainer,'@') == NULL)
+    if (index(maintainer, '@') == NULL)
 	sprintf(dommaintainer, "%s@%s", maintainer, host);
     else
 	strcpy(dommaintainer, maintainer);
@@ -894,17 +894,37 @@ prepare_arguments(argc, argv)
     if (acceptcheck(acceptbuf, originator) == 0) {
 	accept_error = 1;
     }
+
+{
+    char *fromaddr, *rejaddr;
+    char addrbuf[MAXADDRLEN];
+    int fromlen, rejlen;
+
+    if ((header = head_find(headc, headv, "From:")) != NULL) {
+	header += strlen("From:");
+	for (; *header == ' ' || *header == '	'; header++);
+	strcpy(addrbuf, header);
+	fromaddr = normalizeaddr(addrbuf);
+	fromlen = strlen(fromaddr);
+	while ((rejaddr = (char *)strsep(&rejectbuf, " ")) != NULL) {
+	    rejlen = strlen(rejaddr);
+	    if (fromlen > rejlen) {
+		if (!strncasecmp(fromaddr, rejaddr, rejlen)) {
+		    wasrejected = 1;
+		    break;
+		}
+	    }
+	}
+    }
+}
     
     /*
      * Simple check that the header fields aren't grossly
      * mismatched in terms of parens and angle-brackets.
      */
-    for (i=0; i<headc; i++) {
-	if (headv[i] != NULL)
-	{
-	    extern char* checkhdr();
-	    
-	    if ((headererr = checkhdr(headv[i])) != NULL) {
+    for (i = 0; i < headc; i++) {
+	if (headv[i] != NULL) {
+	    if (checkhdr(headv[i]) == 0) {
 		badhdr++;
 		break;
 	    }
@@ -917,25 +937,6 @@ prepare_arguments(argc, argv)
      */
     if (lessnoise) {
 	wasadmin = checkadmin(stdin, &noisef);
-    }
-
-    /* Reject hack */
-    {
-	char *from, *rejaddr;
-	char addrbuf[MAXADDRLEN];
-
-	strcpy(addrbuf,
-	       head_find(headc, headv, "From:") + sizeof("From:") - 1);
-	from = normalizeaddr(addrbuf);
-    
-	while ((rejaddr = (char *)strsep(&rejectbuf, " ")) != NULL) {
-	    int rejlen = strlen(rejaddr);
-	    if (!strncasecmp(from, rejaddr, rejlen) ||
-		!strncasecmp(originator, rejaddr, rejlen)) {
-		wasrejected = 1;
-		break;
-	    }
-	}
     }
 
     /* Now build sendmail command from recipient lists..
@@ -1539,7 +1540,7 @@ getnextissue(filename)
  * The latter may be somewhat optimistic.
  */
 char *
-checkhdr(s)
+checkhdr1(s)
     register char *s;
 {
     int nparens = 0;
@@ -1591,6 +1592,19 @@ checkhdr(s)
 	return NULL;
 
     return "angle/bracket mismatch";
+}
+
+/*
+ * Check the headers.
+ */
+int
+checkhdr(s)
+    register char *s;
+{
+    if (strncasecmp(s, "From:", 5) == 0) { /* From is special.. */
+	return normalizeaddr(s) != NULL;
+    }
+    return checkhdr1(s) == NULL;
 }
 
 

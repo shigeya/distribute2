@@ -25,7 +25,9 @@
 # include <malloc.h>
 #endif
 
+#include "config.h"
 #include "longstr.h"
+#include "memory.h"
 
 /* external */
 #ifdef SVR4
@@ -49,13 +51,15 @@ char *
 normalizeaddr(buf)
     char *buf;
 {
-    char *xp;
-    char *rp;
-    char *p, *beginp, *namep;
-    
-    namep = NULL;
+    char* xp;
+    char* rp;
+    char* beginp;
+    char* endp;
+    char* namep = NULL;
+    char* nbufp = strsave(buf);	/* this buffer will not free'ed.. */
+    char* p;
 
-    for (p = buf; ; p++) {
+    for (p = nbufp; ; p++) {
       restart:
 	if (*p == '\0')
 	    break;
@@ -105,7 +109,7 @@ normalizeaddr(buf)
 	    *rp = '\0';
     }
 
-    return buf;
+    return nbufp;
 }
 
 char *
@@ -173,6 +177,7 @@ main(ac, av)
 	puts(p);
     }
 #endif    
+    test("   \"\033$B>H4nL>\033(J \033$BD+CK\033(J\" <jl@foretune.co.jp>");
     test("Shigeya Suzuki <shigeya@foretune.co.jp>");
     test("shigeya@foretune.co.jp (Shigeya Suzuki)");
     test("Shigeya \"too busy\" Suzuki <shigeya@foretune.co.jp>");
