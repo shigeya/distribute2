@@ -31,7 +31,7 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
+#include "cdefs.h"
 #include <string.h>
 #include <stdio.h>
 

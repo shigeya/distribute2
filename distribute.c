@@ -993,9 +993,17 @@ parse_and_clean_header(file)
     }
     else {
 	if (majordomo || useowner)
+#ifdef HAVE_SNPRINTF
 	    snprintf(maintainer, sizeof(maintainer), "owner-%s", list);
+#else
+	    sprintf(maintainer, "owner-%s", list);
+#endif
 	else
+#ifdef HAVE_SNPRINTF
 	    snprintf(maintainer, sizeof(maintainer), "%s-request", list);
+#else
+	    sprintf(maintainer, "%s-request", list);
+#endif
     }
 
     /* Delete the Precedence: header.
@@ -1006,8 +1014,13 @@ parse_and_clean_header(file)
     }
 
     if (strchr(maintainer, '@') == NULL)
+#ifdef HAVE_SNPRINTF
 	snprintf(dommaintainer, sizeof(dommaintainer),
 		 "%s@%s", maintainer, host);
+#else
+	sprintf(dommaintainer, 
+		 "%s@%s", maintainer, host);
+#endif
     else
 	xstrncpy(dommaintainer, maintainer, sizeof(dommaintainer));
 
@@ -1347,20 +1360,38 @@ AddAliasIDToSubject(subjectbuf, subjectbuf_size, subject, aliasid, issuenum)
 	}
 	
 	if (issuenum >= 0) {	/* with valid issue number, or error(0) */
+#ifdef HAVE_SNPRINTF
 	    snprintf(subjectbuf, subjectbuf_size,
 		     subjfmt,
 		     openaliaschar,
 		     aliasid, issuenum,
 		     closealiaschar,
 		     subject);
+#else
+	    sprintf(subjectbuf,
+		     subjfmt,
+		     openaliaschar,
+		     aliasid, issuenum,
+		     closealiaschar,
+		     subject);
+#endif
 	}
 	else {
+#ifdef HAVE_SNPRINTF
 	    snprintf(subjectbuf, subjectbuf_size,
 		     "%c%s%c %s",
 		     openaliaschar,
 		     aliasid,
 		     closealiaschar,
 		     subject);
+#else
+	    sprintf(subjectbuf,
+		     "%c%s%c %s",
+		     openaliaschar,
+		     aliasid,
+		     closealiaschar,
+		     subject);
+#endif
 	}
     }
     else {

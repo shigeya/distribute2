@@ -94,8 +94,14 @@
 /* Define if you have the lockf function.  */
 #undef HAVE_LOCKF
 
+/* Define if you have the memcmp function.  */
+#undef HAVE_MEMCMP
+
 /* Define if you have the memcpy function.  */
 #undef HAVE_MEMCPY
+
+/* Define if you have the snprintf function.  */
+#undef HAVE_SNPRINTF
 
 /* Define if you have the strchr function.  */
 #undef HAVE_STRCHR
