@@ -11,6 +11,10 @@
 char *strstr __P((char*, char*));
 #endif
 
+#ifdef STRSEP_MISSING
+char *strsep __P((char**, char*));
+#endif
+
 char *strcpycut __P((char*, char*, size_t));
 char *skiptononspace __P((char*));
 char *chopatcr __P((char*));

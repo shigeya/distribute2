@@ -1,5 +1,36 @@
 What's new in this release
 
+
+
+Wed Oct  1 14:40:47 1997		Shigeya Suzuki
+
+** Makefile Change
+
+	STRSEP_MISSING added. Please define this if your platform doesnot
+	have strsep function. (available on BSDs)
+
+	Accept addr list is now working fine. (.acc file)
+	(thanks to Aplix people.) And fixed some of administrative
+ 	forwarding functionality.
+
+	Now have reject list, which may contain which address should
+	be rejected on submission. (.rej file) (from y-koga@ccs.mt.nec.co.jp)
+
+	-M option behavor fix
+
+	8th bit strip bug in euc_to_iso2022jp fixed.
+
+	X-Reference patch (from hiro@is.s.u-tokyo.ac.jp)
+
+	Solaris patch.
+
+	Better '-s' option hack.
+
+	Some prototyping hack.
+
+	Purify tested.
+
+
 Mon Jan  6 17:54:45 1997		Shigeya Suzuki
 
 ** Makefile Change

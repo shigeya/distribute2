@@ -20,15 +20,12 @@ RCONFIG=-DRELEASESTATE=\"Alpha\"
 #				   defaulted to LOG_LOCAL4
 #	-DUSESUID		include SUID support code
 #	-DSTRSTR_MISSING	strstr() missing (Ex: NEWSOS 4.x)
+#	-DSTRSEP_MISSING	strsep() is missing (Ex: SunOS)
 #	-DMSC			MSC Style Subject
 #	-DSVR4
 #
 OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION \
 	-DSYSLOG_FACILITY=LOG_LOCAL4 -DCCMAIL
-#
-# Uncomment following line if you don't have strsep.
-#
-#STRSEP=strsep.o
 
 #
 # DEFAULT parameters -- YOU SHOULD EDIT THESE
