@@ -1,0 +1,213 @@
+.TH DISTRIBUTE 1  "26 November 1991"
+.SH NAME
+distribute \- reforward incoming messages to a mailing list
+.SH SYNOPSIS
+.B distribute \-l
+.I list-name
+.B \-h
+.I list-host
+[
+.B \-f
+.I senderaddr
+]
+[
+.B \-r
+.I replytoaddr
+]
+[
+.B \-a
+.I sequence-label
+]
+[
+.B \-v
+.I sequence-number-file
+]
+[
+.B \-H
+.I headerfile
+]
+[
+.B \-F
+.I footerfile
+]
+[
+.B \-m
+.I sendmailflags
+]
+[
+.B \-Rsde
+]
+.I recip-1 recip-2 ...
+.IX  "distribute command"  ""  "\fLdistribute\fP \(em reforward incoming messages to a mailing list"
+.SH DESCRIPTION
+.I Distribute
+takes as its standard input a mail message, modifies the header (and
+optionally the body) of that message, then invokes
+.I sendmail
+to send the message to the specified recipients.
+It is primarily useful for those who run large mailing lists.
+.PP
+.I Distribute
+modifies the header as follows.  Any From_, Sender:
+Return-Receipt-To:, Errors-To:, Reply-To:, or Return-Path: header lines
+are deleted.  A new Sender: line is added.  The address given on the
+new Sender: line is of the form
+.I sender-addr@list-host
+(if the
+.B \-f
+option is used) or
+.I list-name-request@list-host
+(if no
+.B \-f
+option is used.  If address already contains '@' sign,
+.I sender-addr
+or
+.I list-name-request
+is used).
+The sender address in the envelope of the mail message will also be set to
+the address that appears on the Sender: line.  
+.PP
+If the
+.B \-r
+option is used, next argument treated as reply-to-address.  The address given on the new Sender: line is of the form
+.I reply-to-address@list-host
+(if address already contains '@' sign, 
+.I reply-to-address 
+is used.)
+.PP
+If the
+.B \-v
+option is used. Next argument is used as a file name for sequence number. 
+The file contains only a single number for X-Sequence: nnnn.  
+If the
+.B \-a
+option is used. Additional feature for sequenceing is processed.  Next argument is treated as a alias-id.
+X-Sequence: 
+.I alias-id nnnn, 
+and Subject header is changed to
+Subject: 
+.I (alias-id nnnn) Subject strings.
+.PP
+If the
+.B \-e
+option is used, Errors-To: line is added as
+.I list-name-request@list-host
+form.
+.PP
+If the
+.B \-R
+option is used, Received: lines will be deleted from the header.  This can
+make debugging mailing list problems harder, but can also get messages
+delivered in the case where the path the message takes as it comes in and
+goes back out is long enough to trigger the
+.I sendmail
+loop detection ``feature''.
+All other
+header fields are passed through unmodified.
+.PP
+.I Distribute
+checks to be sure that the parens and angle-brackets are matched on
+the From:, Cc:, and To: lines.
+.I Distribute
+also makes sure that none of the lines
+composing those fields are over 128 characters long and that none of those
+fields are longer than 1024 characters long.  This is done to work
+around bugs in very old versions of
+.I sendmail.
+These
+errors are of the type that are likely to fill the maintainers mailbox
+with at least one message per each address on the list, and thus are worth
+taking special pains to avoid.  If such a message is detected, it is sent
+directly to the list maintainer (rather than to the membership), and flagged
+as being broken.
+.PP
+The
+.B \-H
+and
+.B \-F
+options can be used to add new text to the message body before the start of the
+original message and to add new text to the end of the original message body.
+This feature can be used to remind people about mailing list conventions,
+among other things.
+.PP
+The
+.B \-d
+option can be used to debug
+.I distribute.
+In debug mode,
+.I distribute
+merely prints the
+.I sendmail
+command it will execute, along with the modified header and body of the
+message.  No mail is sent in debug mode.
+.PP
+The
+.B \-m
+option can be used to pass additional flags to
+.I sendmail
+on the command line.  This can come in handy if one wants to tell
+.I sendmail
+to queue the message rather than attempt delivery immediately, to tell
+.I sendmail
+to use an alternate queue directory, and so on.  Using an alternate queue
+directory can be a big win if you like to keep your big mailing lists from
+interfering with normal mail delivery on your system.
+.PP
+The
+.B -s
+option turns on the administrivia filter, which attempts to detect messages
+that were sent to the list readership rather than to the list maintainers.
+Such messages include ``please add me'' and ``please delete me'' messages.
+These messages are flagged and sent to the list maintainer.
+.PP
+To use
+.I distribute,
+set up the aliases for the list as follows:
+.RS .5i
+owner-my-list: myname
+.ti 1i
+my-list: "|/somewhere/distribute -l my-list -h my-host other_options
+my-list-outgoing"
+.ti 1i
+my-list-request: myname
+.ti 1i
+my-list-outgoing::include:/someplace/my-list-recipients
+.RE
+.PP
+Note that
+.I distribute
+must run setuid to the user-id of a
+.I sendmail
+trusted user.  Therefore, its users will have to make their own setuid copy
+of this program.
+.SH "SEE ALSO"
+sendmail(8)
+.LP
+DARPA Internet Request For Comments RFC822
+.LP
+DARPA Internet Request For Comments RFC821
+.LP
+DARPA Internet Request For Comments RFC1211
+.SH BUGS
+The correctness of the header transformations being performed (or not being
+performed) is debatable.  It is believed that the header transformations
+do nothing wrong; these transformations could be more correct (particularly
+in the face of Resent-* lines, which are currently not touched at
+all, and which in theory have precedence over their un-resent brethren), but
+it seems that most mailers deal with forwarded mail somewhat differently
+because the spec is somewhat ambiguous.  Someone really should write a
+RFC about all this.
+.PP
+The line and field length checks in the header used to ensure that the From:,
+To:, and Cc: fields weren't more than 128 bytes long.  The current checks may
+be too permissive.
+.SH AUTHOR
+Originally by Andrew Partan,
+.I asp@uunet.uu.net.
+Hacked into its current form (and made a bit more RFC822-ish) by Steve
+Miller,
+.I steve@umiacs.umd.edu.
+Made still more correct with respect to RFC822 by Dave Balenson,
+.I db@tis.com.
+Included sequence facility and some hacked by Shin Yoshimura,
+.I shin@nc.u-tokyo.ac.jp.

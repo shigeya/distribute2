@@ -1,0 +1,17 @@
+This is distribute, a program that can be used to forward mail to mailing
+lists.  So far as I know, distribute does everything correctly according to
+the RFCs; should you find a problem with this, please let me know.
+
+There's nothing special going on here, so installation should be pretty
+easy.  Most places will want to use the ordinary Makefile to compile and
+install this software.  If you're into the 4.3BSD-reno pmake, a pmake-style
+Makefile is in Makefile.pmake.  Notice how short and simple the pmake Makefile
+is... then go beat up on the vendors you deal with to get them to support
+it!
+
+Steve Miller
+UMIACS
+University of Maryland
+College Park, MD 20742
+steve@umiacs.umd.edu (domain)
+uunet!mimsy!umiacs!steve (UUCP)

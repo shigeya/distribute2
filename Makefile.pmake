@@ -1,0 +1,7 @@
+# $Id$
+
+PROG=	distribute
+SRCS=	distribute.c header.c
+CFLAGS=	-g
+
+.include <local.prog.mk>
