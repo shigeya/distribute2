@@ -57,3 +57,10 @@
 #define MAXHEADERLEN	16384	/* The maximum length of a header line
 				 * that we can handle, including all
 				 * continuation lines.  */
+/*
+ * Other set-ups
+ */
+
+#ifndef _PATH_SENDMAIL
+# define	_PATH_SENDMAIL	"/usr/lib/sendmail" /* default */
+#endif

@@ -8,6 +8,10 @@
 #include <sys/file.h>
 #include <sys/param.h>
 
+#if defined(__bsdi__)		/* may be wrong -- we need to use NET/2 def.*/
+# include <paths.h>		/* for sendmail path */
+#endif
+
 #ifdef SYSLOG
 # include <syslog.h>
 #endif
@@ -783,7 +787,8 @@ char ** argv;
 	 * tacked on.
 	 */
 	argreset();
-	argappend("/usr/lib/sendmail ");
+	argappend(_PATH_SENDMAIL);
+	argappend(" ");
 	if (sendmailargs != NULL)
 		argappend(sendmailargs);
 	argappend(" -f");
@@ -813,13 +818,15 @@ char ** argv;
 			if ((headererr = checkhdr(headv[i])) != NULL) {
 			    argreset();
 			    if (senderaddr != NULL) {
-				argappend("/usr/lib/sendmail -f");
+				argappend(_PATH_SENDMAIL);
+				argappend(" -f");
 				argappend(senderaddr);
 				argappend(" ");
 				argappend(senderaddr);
 			    }
 			    else {
-				argappend("/usr/lib/sendmail -f");
+				argappend(_PATH_SENDMAIL);
+				argappend(" -f");
 				argappend(maintainer);
 				argappend(" ");
 				argappend(maintainer);
@@ -842,13 +849,15 @@ char ** argv;
 		if (wasadmin = checkadmin(stdin, &noisef)) {
 		    argreset();
 		    if (senderaddr != NULL) {
-			argappend("/usr/lib/sendmail -f");
+			argappend(_PATH_SENDMAIL);
+			argappend(" -f");
 			argappend(senderaddr);
 			argappend(" ");
 			argappend(senderaddr);
 		    }
 		    else {
-			argappend("/usr/lib/sendmail -f");
+			argappend(_PATH_SENDMAIL);
+			argappend(" -f");
 			argappend(maintainer);
 			argappend(" ");
 			argappend(maintainer);

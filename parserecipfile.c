@@ -12,7 +12,12 @@
 #include <string.h>
 #include <sysexits.h>
 #include <errno.h>
-#include <malloc.h>
+
+#if __STDC__
+# include <stdlib.h>
+#else
+# include <malloc.h>
+#endif
 
 #include "longstr.h"
 

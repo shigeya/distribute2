@@ -10,6 +10,8 @@
 RCONFIG=-DRELEASESTATE=\"Alpha\"
 
 #
+# Configuration options:
+#
 # Available options:
 #	-DSYSLOG		include syslog based logging
 #	-DISSUE			include X-Sequence sequence numbering
