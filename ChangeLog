@@ -1,5 +1,7 @@
 Mon Apr 12 11:42:18 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
+	* -B オプションによる subject alias の括弧の変更機能を追加。
+
 	* "NEWS" を追加した
 
 	* -M/-N option の追加

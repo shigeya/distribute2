@@ -51,6 +51,14 @@
 # define DEF_RECIPIENT_SUFFIX	".rec"
 #endif
 
+#ifndef DEF_OPENALIAS_CHAR
+# define DEF_OPENALIAS_CHAR	'('
+#endif
+
+#ifndef DEF_CLOSEALIAS_CHAR
+# define DEF_CLOSEALIAS_CHAR	')'
+#endif
+
 
 extern	int head_parse();
 extern	void head_norm();
@@ -80,6 +88,10 @@ char *recipient_suffix = DEF_RECIPIENT_SUFFIX;
 
 char myhostname[MAXHOSTNAMELEN];
 
+char openaliaschar = DEF_OPENALIAS_CHAR;
+char closealiaschar = DEF_CLOSEALIAS_CHAR;
+
+
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
 
 
@@ -93,7 +105,7 @@ usage() {
     fprintf(stderr, " [-I issuenumberfile]");
 #endif
 #ifdef SUBJALIAS
-    fprintf(stderr, " [-a aliasid]");
+    fprintf(stderr, " [-a aliasid] [-B brace_lr]");
 #endif
     fprintf(stderr, "\n");
     fprintf(stderr, "	[-Rsde] [-m sendmail-flags]\n");
@@ -337,7 +349,8 @@ char ** argv;
 	int c;
 	extern char *optarg;
 	extern int optind;
-
+	int optionerror = 0;
+	
 	chdir("/tmp");
 
 	/* setup default */
@@ -345,7 +358,7 @@ char ** argv;
 	host = myhostname;
 
 	progname = argv[0];
-	while ((c = getopt(argc, argv, "M:N:D:h:f:Rsel:H:dF:m:v:I:r:a:L:")) != EOF) {
+	while ((c = getopt(argc, argv, "M:N:B:h:f:Rsel:H:dF:m:v:I:r:a:L:")) != EOF) {
 		switch(c) {
 		case 'M':	/* generic mailinglist with reply-to */
 		    errorsto++;
@@ -366,6 +379,49 @@ char ** argv;
 					       seq_suffix);
 		    recipfile = adddefaultpath(recipient_path, optarg,
 					       recipient_suffix);
+		    break;
+
+		case 'B':	/* brace def */
+		    switch (strlen(optarg)) {
+		    case 1:	/* -B <typechar> */
+			switch (optarg[0]) {
+			case 'c': case 'C': /* curly brace */
+			    openaliaschar = '{'; /* } { */
+			    closealiaschar = '}'; 
+			    break;
+
+			case 'b': case 'B': /* bracket */
+			    openaliaschar = '[';
+			    closealiaschar = ']';
+			    break;
+			    
+			case 'a': case 'A': /* angle bracket */
+			    openaliaschar = '<';
+			    closealiaschar = '>';
+			    break;
+
+			case 'p': case 'P': /* paren (default)*/
+		    	default:
+			    openaliaschar = '(';
+			    closealiaschar = ')';
+			    break;
+		    	}
+			break;
+
+		    case 2:	/* -B <openchar><closechar> */
+			if (optarg[0] != optarg[1]) {
+			    openaliaschar = optarg[0];
+			    closealiaschar = optarg[1];
+			}
+			else {
+			    optionerror++;
+			}
+			break;
+
+		    default:
+			optionerror++;
+			break;
+		    }
 		    break;
 
 		case 'h':	/* hostname */
@@ -460,7 +516,7 @@ char ** argv;
 	/*
 	 * We need at least the host name and the list name...
 	 */
-	if (host == NULL || list == NULL)
+	if (host == NULL || list == NULL || optionerror)
 		usage();
 
 	/*
@@ -719,14 +775,14 @@ char ** argv;
 		register char *p = subject;
 		register int l;
 		char buf[256];
-		sprintf(buf, "(%s ", aliasid);
+		sprintf(buf, "%c%s ", openaliaschar, aliasid);
 		l = strlen(buf);
 		while (strlen(p) > l) {
 			if (strncmp(p, buf, l) == 0 && isdigit(p[l])) {
 				register char *pp = p, *s = p + l;
 				while (isdigit(*s))
 					s++;
-				if (*s == ')') {
+				if (*s == closealiaschar) {
 					s++;
 					while (isspace(*s))
 						s++;
@@ -744,9 +800,17 @@ char ** argv;
 				p++;
 		}
 		if (issuenum)
-			fprintf(pipe, "Subject: (%s %d)%s\n",aliasid,issuenum,subject);
+		    fprintf(pipe, "Subject: %c%s %d%c%s\n",
+			    openaliaschar,
+			    aliasid,issuenum,
+			    closealiaschar,
+			    subject);
 		else
-			fprintf(pipe, "Subject: (%s)%s\n",aliasid,subject);
+		    fprintf(pipe, "Subject: %c%s%c%s\n",
+			    openaliaschar,
+			    aliasid,
+			    closealiaschar,
+			    subject);
 	} else
 #endif
 		fprintf(pipe, "Subject:%s\n",subject);

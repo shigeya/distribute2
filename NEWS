@@ -4,6 +4,22 @@ What's new in this release
 
 Mon Apr 12 13:45:01 1993		Shigeya Suzuki
 
+** alias brackets
+
+	Now you can change parens to brackets or whatever you want.
+
+	-Bp or -BP	paren		(MailingList number)	default
+	-Ba or -BA	angle bracket	<MailingList number>
+	-Bc or -BC	curly bracket	{MailingList number}
+	-Bb or -BB	bracket		[MailingList number]
+
+	or, you can supply by your self:
+
+	-B+-				+MailingList number-
+
+	But:	1. be careful about quoting
+		2. you have to choose differnt character for open/close.
+
 ** default path
 
 	If the -L/-I option's accompanied filename is not absolute path,
