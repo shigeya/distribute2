@@ -19,11 +19,6 @@ OPTIONS= -DISSUE -DSUBJALIAS
 #
 # DEFAULT parameters -- YOU SHOULD EDIT THESE
 #
-# DEF_DOMAINNAME	-- default domain name attached to list-name
-# [default: undef]	   like MailingListName@My.Domain.Name
-#			   Define to your domain name, or undefine it.
-#			   If undefined, hostname will be attached.
-#
 # DEF_SEQ_PATH		-- default path to directory which holds
 # [default:			   sequence number files.
 #   /usr/lib/mail-list]
@@ -41,7 +36,6 @@ OPTIONS= -DISSUE -DSUBJALIAS
 
 # EXAMPLE:
 ## DEFAULTCONFIG=\
-##	-DDEF_DOMAINNAME=\"foretune.co.jp\" \
 ##	-DDEF_SEQ_PATH=\"/proj/proj.mail/seq\" \
 ##	-DDEF_RECIPIENT_PATH=\"/proj/proj.mail\"
 
@@ -56,6 +50,11 @@ WHERE=	/usr/local/lib
 MANDIR=	/usr/local/man
 MANSEC=	1
 
+# Install as
+OWNER=	root
+GROUP=	wheel
+MODE=	4755
+
 # C source files
 SRCS=		distribute.c header.c
 HDRS=		util.h
@@ -69,9 +68,13 @@ distribute: distribute.o header.o
 	${CC} ${CFLAGS} -o distribute distribute.o header.o
 
 install: distribute distribute.1
-	install -s -o bin -g bin -m 755 distribute ${DESTDIR}${WHERE}
-	install -o bin -g bin -m 444 distribute.1 \
-	    ${DESTDIR}${MANDIR}/man${MANSEC}/distribute.${MANSEC}
+	install -s -o ${OWNER} -g ${GROUP} -m ${MODE} distribute \
+		${DESTDIR}${WHERE}
+	install -m 444 distribute.1 \
+		${DESTDIR}${MANDIR}/man${MANSEC}/distribute.${MANSEC}
+
+testinst: distribute
+	install -s -o root -g wheel -m 4755 distribute bin
 
 clean:
 	rm -f a.out core *.s *.o distribute

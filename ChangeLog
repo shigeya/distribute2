@@ -1,3 +1,20 @@
+Tue Apr 20 18:24:52 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* Makefile を変更 DEF_DOMAINNAMEに関する記述を削除。install時の
+	  owner group をmakefileで指定。mode=4755
+
+	* recipfile が開けない時のエラーメッセージが間違っていたので修正。
+
+	* Reply-Toのデフォルトアクションを変更。Reply-Toがある場合は、それ
+	  を尊重するようにした。ただし、-i オプションをつけると、強制的に
+	  Reply-toを書き換える（backward compatible option）
+
+Tue Apr 19 12:03:07 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* WHITESPACE SPACE という行がヘッダの終りと解釈されていたので、そ
+	  の行を無視するようにした。さらに、FormFeedを解釈するのはお節介な
+	  ので、無視。
+
 Mon Apr 12 11:42:18 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* -B オプションによる subject alias の括弧の変更機能を追加。

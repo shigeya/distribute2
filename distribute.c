@@ -95,6 +95,8 @@ char closealiaschar = DEF_CLOSEALIAS_CHAR;
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
 
 
+#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:Rsdei"
+
 void
 usage() {
     fprintf(stderr, "usage: %s ", progname);
@@ -108,7 +110,7 @@ usage() {
     fprintf(stderr, " [-a aliasid] [-B brace_lr]");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "	[-Rsde] [-m sendmail-flags]\n");
+    fprintf(stderr, "	[-Rsdei] [-m sendmail-flags]\n");
     fprintf(stderr, "	{-L recip-addr-file | recip-addr ...}\n");
     exit(EX_USAGE);
 }
@@ -346,6 +348,8 @@ char ** argv;
 	int zaprecv = 0;	/* zap received lines */
 	int lessnoise = 0;	/* run ``please add/delete me'' filter */
 	int errorsto = 0;
+	int forcereplyto = 0;	/* ignore reply to */
+	char *originatorreplyto = NULL;
 	int c;
 	extern char *optarg;
 	extern int optind;
@@ -358,7 +362,7 @@ char ** argv;
 	host = myhostname;
 
 	progname = argv[0];
-	while ((c = getopt(argc, argv, "M:N:B:h:f:Rsel:H:dF:m:v:I:r:a:L:")) != EOF) {
+	while ((c = getopt(argc, argv, GETOPT_PATTERN)) != EOF) {
 		switch(c) {
 		case 'M':	/* generic mailinglist with reply-to */
 		    errorsto++;
@@ -469,6 +473,10 @@ char ** argv;
 			issuefile = adddefaultpath(seq_path, optarg, "");
 			break;
 
+		case 'i':	/* force ignore replyto */
+		    forcereplyto++;
+		    break;
+
 		case 'r':	/* replyto header */
 			replyto = optarg;
 			break;
@@ -506,7 +514,7 @@ char ** argv;
 
 	if (recipfile != NULL) {
 	    if ((recipf = fopen(recipfile, "r")) == NULL) {
-		fprintf(stderr, "can't open receipt address file '%s'\n", optarg);
+		fprintf(stderr, "can't open receipt address file '%s'\n", recipfile);
 		exit(EX_NOINPUT);
 	    }
 	}
@@ -601,9 +609,16 @@ char ** argv;
 	/*
 	 * Delete the Reply-To: header
 	 */
+
 	if (replyto != NULL) {
-		if ((header = head_delete(headc, headv, "Reply-To:")) != NULL)
-			free(header);
+	    header = head_delete(headc, headv, "Reply-To:");
+	    if (forcereplyto) {
+		if (header != NULL)
+		free(header);
+	    }
+	    else {
+		originatorreplyto = header;
+	    }
 	}
 
 	/*
@@ -753,12 +768,19 @@ char ** argv;
 	 * Add a new Reply-To.
 	 */
 	if (replyto != NULL){
-	    if (index(replyto,'@') == NULL)
-		fprintf(pipe, "Reply-To: %s@%s\n", replyto, host);
-	    else
-		fprintf(pipe, "Reply-To: %s\n", replyto, host);
+	    if (!forcereplyto && originatorreplyto != NULL) {
+		fputs(originatorreplyto, pipe);
+		putc('\n', pipe);
+		free(originatorreplyto); /* sanity */
+	    }
+	    else {
+		if (index(replyto,'@') == NULL)
+		    fprintf(pipe, "Reply-To: %s@%s\n", replyto, host);
+		else
+		    fprintf(pipe, "Reply-To: %s\n", replyto, host);
+	    }
 	}
-		
+
 #ifdef ISSUE
 	if (issuenum) {
 #ifdef SUBJALIAS

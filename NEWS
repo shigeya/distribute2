@@ -1,5 +1,27 @@
-What's new in this release	$Id$
+What's new in this release
 
+Tue Apr 20 21:37:34 1993		Shigeya Suzuki
+
+** Makefile Change
+	Changed Makefile to set owner/group/mode. current mode using
+	is 4755. Please be careful.
+
+** Reply-to Handling
+
+	Now, -r <reply-to> option only add Reply-To header if no
+	such exists.
+
+	By -i -r <reply-to> option work same as previous version.
+	(Delete Reply-To before add)
+
+** End of header checking method changed.
+
+	In previous versions, LCWS-char + CR Line treated as
+	end of header component. In this version, such lines are ignored
+	and the line only with CRLF treated as end of header.
+	(per RFC822)
+
+	Also, we do not treat FORM FEED as LCWS-char. (per RC822)
 
 
 Mon Apr 12 13:45:01 1993		Shigeya Suzuki
@@ -55,3 +77,6 @@ Mon Apr 12 13:45:01 1993		Shigeya Suzuki
 
 	In SunOS, the max number of characters for argument list is
 	1M bytes, so no problem.
+
+
+$Id$

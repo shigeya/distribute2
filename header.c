@@ -137,14 +137,16 @@ FILE * fp;	/* File pointer to the start of the message. */
 				break;
 			}
 
-			/* If this is a blank line, then we are at the
-			   end of the headers.
-			*/
-			if (strspn(line, " \t\f\n\r") == strlen(line))
-			{
-				/* We are at the end of the headers.
-				*/
-				break;
+			/* According to RFC822, WHITESPACE CRLF sequnce
+			 * is just a continuation line. So, Just ignore it.
+			 * Also, RFC822 do not care about Form Feed.
+			 */
+			if (strspn(line, "\n\r") == strlen(line)) {
+			    break; /* this is end of line */
+			}
+
+			if (strspn(line, " \t\n\r") == strlen(line)) {
+			    continue; /* just ignore and continue */
 			}
 
 			/* This is a continuation line.  If any of it
