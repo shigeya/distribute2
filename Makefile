@@ -4,7 +4,7 @@
 #
 # See CREDITS for credit and COPYRIGHT for copyright notice.
 #
-RCONFIG=-DRELEASESTATE=\"Alpha\"
+RCONFIG=-DRELEASESTATE=\"Alpha/E1\"
 #PURIFY=purify
 #PURIFYOPTS=-mail-to-user=shigeya -cache-dir=/var/tmp/distribute
 

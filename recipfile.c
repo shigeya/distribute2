@@ -143,13 +143,23 @@ parserecipfile(filename, errormode)
 	if (buf[0] != '\0') {	/* if it is *NOT* newline.. */
 	    char * namep = normalizeaddr(buf);
 	    if (namep != NULL) {
+	        char* x = index(buf, '&');
+
 		if (!first) {
 		    ls_appendstr(&recipbuf, " ");
 		}
 		else {
 		    first = 0;
 		}
-		ls_appendstr(&recipbuf, namep);
+
+                if (x != NULL) {
+                    ls_appendstr(&recipbuf, "'");
+		    ls_appendstr(&recipbuf, namep);
+                    ls_appendstr(&recipbuf, "'");
+	    	}
+		else {
+		    ls_appendstr(&recipbuf, namep);
+		}
 	    }
 	}
     }

@@ -123,6 +123,7 @@ char *originatorreplyto = NULL;
 char subjectbuf[MAXSUBJLEN];
 char *originator = NULL;
 int bodysum = 0;		/* body check sum */
+char *sendmail_path = _PATH_SENDMAIL;
 
 #ifdef USESUID
 int archive_uid, archive_gid;
@@ -186,7 +187,7 @@ static int ccmail_error_message = 0;
 /* Macros
  */
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
-#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:P:C:n:Y:Z:RsdDeijVAXoOqtx"
+#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:S:m:v:I:r:a:L:P:C:n:Y:Z:RsdDeijVAXoOqtxc"
 
 
 /* Forward Declarations
@@ -383,7 +384,7 @@ usage()
     fprintf(stderr, " [-a aliasid] [-B brace_lr]");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "\t[-P precedence] [-m sendmail-flags] [-C archive-dir]\n");
+    fprintf(stderr, "\t[-P precedence] [-S sendmail-path] [-m sendmail-flags] [-C archive-dir]\n");
     fprintf(stderr, "\t[-Z indexfile]\n");
     
     fprintf(stderr, "\t[-ADKORVXdeijnosxt] {-L recip-addr-file | recip-addr ...}\n");
@@ -546,6 +547,10 @@ parse_options(argc, argv)
 	    footerfile = optarg;
 	    break;
 	    
+	case 'S':
+	    sendmail_path = strsave(optarg);
+	    break;
+	    
 	case 'm':	/* add'l args to sendmail */
 	    if (sendmailargs == NULL)
 		sendmailargs = strsave(optarg);
@@ -650,6 +655,10 @@ parse_options(argc, argv)
 
 	case 'Z':
 	    index_name = optarg;
+	    break;
+
+	case 'c':
+	    acceptfile = recipfile;	/* copy recip file path */
 	    break;
 
 	default:
@@ -975,7 +984,7 @@ prepare_arguments(argc, argv)
     }
 #endif
 
-    argappend(_PATH_SENDMAIL);
+    argappend(sendmail_path);
     argappend(" ");
 
     if (sendmailargs != NULL)
