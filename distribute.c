@@ -801,6 +801,8 @@ char ** argv;
 	 * tacked on.
 	 */
 	
+	argreset();
+
 	/*
 	 * If archiving is requested, change current directory to the
 	 * directory specified by option '-C', and make temporary file.
@@ -830,7 +832,6 @@ char ** argv;
 	    }
 	}
 
-	argreset();
 	argappend(_PATH_SENDMAIL);
 	argappend(" ");
 	if (sendmailargs != NULL)

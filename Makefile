@@ -4,8 +4,8 @@
 #
 # Some hacks here courtesy of Brent Chapman, brent@napa.Telebit.COM
 #
-# Modified by: shin@u-tokyo.ac.jp, toku@dit.co.jp, shigeya@foretune.co.jp
-#		and hiro@is.s.u-tokyo.ac.jp
+# Modified by: shin@u-tokyo.ac.jp, toku@dit.co.jp, shigeya@foretune.co.jp,
+#		hiro@is.s.u-tokyo.ac.jp and sano@wide.ad.jp
 #
 RCONFIG=-DRELEASESTATE=\"Alpha\"
 

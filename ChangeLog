@@ -1,5 +1,7 @@
 Tue Nov  2 15:46:39 1993  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
 
+	* Patchlevel=8 FIX
+
 	* Introduced sano tee style archive patch. also includes patch for
 	  recipient file parser.
 
