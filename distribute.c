@@ -187,7 +187,7 @@ static int ccmail_error_message = 0;
 /* Macros
  */
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
-#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:S:m:v:I:r:a:L:P:C:n:Y:Z:RsdDeijVAXoOqtxc"
+#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:S:m:v:I:r:a:L:P:C:n:Y:Z:K:A:RsdDeijVAXoOqtxc"
 
 
 /* Forward Declarations
@@ -301,6 +301,14 @@ void
 argappend(s)
     char *s;
 {
+    ls_appendstr(&cmdbuf, s);
+}
+
+void
+argappend_quote(s)
+    char *s;
+{
+    /* append items separated by quote.. */
     ls_appendstr(&cmdbuf, s);
 }
 
@@ -555,7 +563,7 @@ parse_options(argc, argv)
 	    if (sendmailargs == NULL)
 		sendmailargs = strsave(optarg);
 	    else
-		strspappend(sendmailargs, optarg);
+		sendmailargs = strspappend(sendmailargs, optarg);
 	    break;
 	    
 	case 'I':	/* add isssue number */
@@ -587,23 +595,24 @@ parse_options(argc, argv)
 	case 'n':	/* trim news header */
 	    newstrim = optarg;
 	    break;
-	    
+
 	case 'L':	/* recip-addr-file */
 	    if (majordomo)
 		recipfile = adddefaultpath(majordomo_recipient_path,
 					   optarg,"", majordomo);
 	    else
 		recipfile = adddefaultpath(recipient_path, optarg,
-					accept_suffix, 0);
+					   recipient_suffix, 0);
 	    break;
 	    
-	case 'A':	/* accept-addr-file */
+	case 'A':	/* accept-addr-file, in recipient path */
 	    acceptfile = adddefaultpath(recipient_path, optarg,
 					accept_suffix, 0);
 	    break;
 	    
-	case 'K':	/* reject-addr-file */
-	    rejectfile = adddefaultpath(recipient_path, optarg, "", 0);
+	case 'K':	/* reject-addr-file, in recipient path */
+	    rejectfile = adddefaultpath(recipient_path, optarg,
+					reject_suffix, 0);
 	    break;
 	    
 	case 'P':	/* precedence */
@@ -891,8 +900,10 @@ prepare_arguments(argc, argv)
 
 #ifdef CCMAIL
     if (strcmp(subject, "cc:Mail SMTPLINK Undeliverable Message") == 0
-	||strcmp(subject, "Message not deliverable") == 0
-	|| strcmp(subject, "Unsent Message Returned to Sender") == 0) {
+	|| strcmp(subject, "Message not deliverable") == 0
+	|| strcmp(subject, "Unsent Message Returned to Sender") == 0
+	|| strncmp(subject, "cc:Mail Link to SMTP Undeliverable Message", 42) == 0
+	|| strncmp(subject, "NON-DELIVERY of:", 16) == 0) {
 
 	ccmail_error_message = 1;
     }
@@ -1021,7 +1032,7 @@ prepare_arguments(argc, argv)
     else {
 	if (recipientbuf != NULL) {
 	    argappend(" ");
-	    argappend(recipientbuf);
+	    argappend_quote(recipientbuf);
 	}
 
 	for (i = optind ; i < argc ; i++) {
@@ -1036,6 +1047,7 @@ acceptcheck(buf, pat)
     char *buf;
     char *pat;
 {
+    char patbuf[1024];
     char *p;
     int len;
 
@@ -1045,16 +1057,23 @@ acceptcheck(buf, pat)
     if (buf[0] == '\0')		/* accept NONE if EMPTY table */
 	return 0;
 
-    p = strstr(buf, pat);
-    len = strlen(pat);
+    if (pat == NULL || pat[0] == '\0')
+	return 0;
+
+    if (strlen(pat) > sizeof(patbuf)/2)
+	return 0;
     
-    if (*pat == 0 || p == NULL)	/* pat empty or no match */
-	return 0;		/* is fail */
+    snprintf(patbuf, "'%s'", pat); /* cheat hack */
+    p = strstr(buf, patbuf);
+    len = strlen(patbuf);
+    
+    if (p == NULL)		/* no match */
+	return 0;		/* fail */
 
     if ((p[len] == ' ' || p[len] == 0)) {
 	if (p == buf)		/* at beginning */
 	    return 1;
-	else if (p[-1] == ' ')	/* at middle (require LF before it) */
+	else if (p[-1] == ' ')	/* at middle (require space before it) */
 	    return 1;
 	else			/* else fail */
 	    return 0;
@@ -1324,7 +1343,7 @@ send_message()
 #else
     strcpy(subjectbuf, subject);
 #endif
-    
+
     fprintf(pipe, "Subject: %s\n", subjectbuf);
     
 #ifdef DEBUGLOG
@@ -1405,11 +1424,12 @@ cleanheader(headc, headv)
 {
     int i;
     char *header;		/* A pointer to a header */
-
+	
     /*
      * Make sure that the first space character in each header line
      * is a blank
      */
+
     for (i=0; i<headc; i++)
 	head_blank(headv[i]);
     
@@ -1425,6 +1445,7 @@ cleanheader(headc, headv)
      *	To:			leave alone; shows the list name
      *	Cc:			leave alone
      * 	Date:			leave alone
+
      *	Reply-To:		delete and add our own (if "-r")
      *	Message-Id:		leave alone
      *	Return-Receipt-To:	delete to avoid skillions of receipts
@@ -1497,48 +1518,48 @@ cleanheader(headc, headv)
 #ifdef ISSUE
 int
 getnextissue(filename)
-	char *filename;
+    char *filename;
 {
-	char buf[128];		/* enough to hold number */
-	int fd;
-	int issue;
-	char *p;
+    char buf[128];		/* enough to hold number */
+    int fd;
+    int issue;
+    char *p;
 
-	if ((fd = open(filename,O_RDWR)) < 0) {
-		if ((fd = creat(filename, 0664)) < 0) {
-		    logandexit(EX_NOINPUT,
-			"can't create issue file: %s", filename);
-		}
-		write(fd,"1\n",2);
-		close(fd);
-		return 1;
+    if ((fd = open(filename,O_RDWR)) < 0) {
+	if ((fd = creat(filename, 0664)) < 0) {
+	    logandexit(EX_NOINPUT,
+		       "can't create issue file: %s", filename);
 	}
-#ifdef SVR4
-	lockf(fd, F_LOCK, 0);
-#else
-	flock(fd, LOCK_EX);
-#endif
-	read(fd, buf, sizeof(buf));
-
-	if ((p = index(buf,'\n')) != NULL) {	/* failsafe */
-		*p = '\0';
-		issue = atoi(buf);
-		issue++;
-	}
-	else {
-		/* wrong format. reset it */
-		issue = 1;
-	}
-	lseek(fd, 0L, L_SET);
-	sprintf(buf, "%d\n", issue);
-	write(fd,buf,strlen(buf));
-#ifdef SVR4
-	lockf(fd, F_ULOCK, 0);
-#else
-	flock(fd, LOCK_UN);
-#endif
+	write(fd,"1\n",2);
 	close(fd);
-	return issue;
+	return 1;
+    }
+#ifdef SVR4
+    lockf(fd, F_LOCK, 0);
+#else
+    flock(fd, LOCK_EX);
+#endif
+    read(fd, buf, sizeof(buf));
+
+    if ((p = index(buf,'\n')) != NULL) {	/* failsafe */
+	*p = '\0';
+	issue = atoi(buf);
+	issue++;
+    }
+    else {
+	/* wrong format. reset it */
+	issue = 1;
+    }
+    lseek(fd, 0L, L_SET);
+    sprintf(buf, "%d\n", issue);
+    write(fd,buf,strlen(buf));
+#ifdef SVR4
+    lockf(fd, F_ULOCK, 0);
+#else
+    flock(fd, LOCK_UN);
+#endif
+    close(fd);
+    return issue;
 }
 #endif
 
@@ -1548,57 +1569,91 @@ getnextissue(filename)
  * lines of up to 128 characters, and fields of up to 1024 characters.
  * The latter may be somewhat optimistic.
  */
+/*
+ * Modified by hchikara@nifs.ac.jp  1998.12.5, modified and merged by shigeya.
+ *  1. brackets quoted by "" is not count
+ *  2. In the "From:" field,  the count of parens is not used when angres
+ *     are used ----- This routine is commented out now...
+ */
 char *
 checkhdr1(s)
     register char *s;
 {
     int nparens = 0;
     int nangles = 0;
+    int nquote = 0;
     int linelen = 0, totlen = 0;
+    int has_angle = 0;
+    int last_char = 0;
     
-    if (strncasecmp(s, "From:", 5) && strncasecmp(s, "To:", 3) &&
-	strncasecmp(s, "Cc:", 3))
-	return NULL;		/* is NOT From/To/Cc, pass it */
+    if (strncasecmp(s, "From:", 5) != 0
+	&& strncasecmp(s, "To:", 3) != 0
+	&& strncasecmp(s, "Cc:", 3) != 0) {
+	return NULL;		/* is NOT From/To/Cc, just pass it */
+    }
     
     while (*s != '\0') {
 	linelen++;
 	totlen++;
-	switch(*s) {
-	case '\n':
+
+	if (*s == '\n') {
 	    linelen = 0;
-	    break;
-	    
-	case '(':
-	    nparens++;
-	    break;
-	    
-	case ')':
-	    if (nparens <= 0)
-		return "less open paren";
-	    nparens--;
-	    break;
-	    
-	case '<':
-	    nangles++;
-	    break;
-	    
-	case '>':
-	    if (nangles <= 0)
-		return "less open angle";
-	    nangles--;
-	    break;
 	}
-	s++;
+	else if (nquote) {
+	    if (*s == '"' && last_char != '\\')
+		nquote = 0;
+	    /* pass character inside quote.. */
+	}
+	else {
+	    switch(*s) {
+	    case '"':
+		if (last_char != '\\') { /* if and only if non-quoted char */
+		    nquote++;
+		}
+		break;
+		
+	    case '(':
+		nparens++;
+		break;
+	    
+	    case ')':
+		if (nparens <= 0)
+		    return "less open paren";
+		nparens--;
+		break;
+		
+	    case '<':
+		has_angle = 1;
+		nangles++;
+		break;
+	    
+	    case '>':
+		if (nangles <= 0)
+		    return "less open angle";
+		nangles--;
+		break;
+	    }
+	}
+	last_char = *s++;
 
 	if (totlen > MAXHEADERLEN-1) {/* only check this.. */
 	    static char buf[80];
 	    sprintf(buf, "too long header (len=%d)", totlen);
 	    return buf;
 	}
-
     }
+
+    /* In the "From:" field, mismatched parens is ignored when angle is used. 
+     * This function is not active now because it is not checked yet...
+     */
+#if 0
+    if (has_angle != 0 && nangles == 0 && strncasecmp(s, "From:", 5) == 0 )
+	return NULL;
+#endif
     if (nangles == 0 && nparens == 0)
 	return NULL;
+    if (nquote)
+	return "double quote mismatch";
 
     return "angle/bracket mismatch";
 }

@@ -1,3 +1,14 @@
+1999-05-06  Shigeya Suzuki  <shigeya@malor.foretune.co.jp>
+
+	* recipfile.c (parserecipfile): added some sanity check.
+
+	* distribute.c (prepare_arguments): cc:Mail reject pattern
+	  added. (from ume@bisd.hitachi.co.jp, via itojun@itojun.org).
+	  (parse_options): strspend bug fix from Hidekazu Nakamura
+	  <u90121@uis-inf.co.jp>. (parse_options): option parsing bug fix
+	  and little enhancement.
+	  (cleanheader): bracket bug fix from hchikara@nifs.ac.jp
+
 Thu Nov 20 15:10:27 1997  Shigeya Suzuki  <shigeya@werdna.foretune.co.jp>
 
 	* distribute.c (prepare_arguments): now using normalizeaddr and

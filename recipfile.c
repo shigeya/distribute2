@@ -143,8 +143,6 @@ parserecipfile(filename, errormode)
 	if (buf[0] != '\0') {	/* if it is *NOT* newline.. */
 	    char * namep = normalizeaddr(buf);
 	    if (namep != NULL) {
-	        char* x = index(buf, '&');
-
 		if (!first) {
 		    ls_appendstr(&recipbuf, " ");
 		}
@@ -152,14 +150,9 @@ parserecipfile(filename, errormode)
 		    first = 0;
 		}
 
-                if (x != NULL) {
-                    ls_appendstr(&recipbuf, "'");
-		    ls_appendstr(&recipbuf, namep);
-                    ls_appendstr(&recipbuf, "'");
-	    	}
-		else {
-		    ls_appendstr(&recipbuf, namep);
-		}
+		ls_appendstr(&recipbuf, "'"); /* cheat dirty hack */
+		ls_appendstr(&recipbuf, namep);
+		ls_appendstr(&recipbuf, "'");
 	    }
 	}
     }
