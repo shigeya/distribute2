@@ -24,6 +24,10 @@
 # include <unistd.h>
 #endif
 
+#ifndef HAVE_MEMCMP
+# define bcmp memcmp
+#endif
+
 #include "memory.h"
 #include "history.h"
 #include "logging.h"
