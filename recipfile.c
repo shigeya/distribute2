@@ -7,6 +7,11 @@
  *
  */
 
+#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4)
+#undef SVR4
+#define SVR4
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -23,8 +28,15 @@
 #include "longstr.h"
 
 /* external */
+#ifdef SVR4
+char *strchr();
+char *strrchr();
+#define	index	strchr
+#define	rindex	strrchr
+#else
 char *index();
 char *rindex();
+#endif
 
 extern logandexit();
 extern logwarn();
@@ -40,20 +52,13 @@ normalizeaddr(buf)
     char *p, *beginp, *namep;
     
     namep = NULL;
-    /* skip comments */
-    if ((p = index(buf, '\n')) != NULL)
-	*p = '\0';
-    if (buf[0] == '\0' || buf[0] == '#') /* ignore comment or null line */
-	return NULL;		/* is blank line */
-    if ((p = index(buf, '#')) != NULL) /* remove trailing comments */
-	*p = '\0';
-    
+
     /* has address part -- easy
      */	
     if ((p = index(buf, '<')) != NULL) {
 	beginp = ++p;
 	if ((p = index(beginp, '>')) != NULL) {
-	    *p = NULL;
+	    *p = '\0';
 	}
 	else {
 	    logwarn("angle mismatch: %s.\n", buf);
@@ -115,16 +120,23 @@ parserecipfile(filename, errormode)
     ls_reset(&recipbuf);
 
     while (fgets(buf, sizeof buf, recipf) != NULL) {
-	char * namep = normalizeaddr(buf);
+	char *p;
+	if ((p = index(buf, '\n')) != NULL)/* remove trailing LF */
+	    *p = '\0';
+	if ((p = index(buf, '#')) != NULL) /* remove comments, if exists */
+	    *p = '\0';
 
-	if (namep != NULL) {
-	    if (!first) {
-		ls_appendstr(&recipbuf, " ");
+	if (buf[0] != '\0') {	/* if it is *NOT* newline.. */
+	    char * namep = normalizeaddr(buf);
+	    if (namep != NULL) {
+		if (!first) {
+		    ls_appendstr(&recipbuf, " ");
+		}
+		else {
+		    first = 0;
+		}
+		ls_appendstr(&recipbuf, namep);
 	    }
-	    else {
-		first = 0;
-	    }
-	    ls_appendstr(&recipbuf, namep);
 	}
     }
 
@@ -156,6 +168,7 @@ main(ac, av)
     test("shigeya@foretune.co.jp (Shigeya 'too busy' Suzuki)");
     test("\":users 1\"@foretune.co.jp");
     test("=?ISO-2022-JP?B?GyRCTmtMWkxQOkgbKEI=?= <shigeya@foretune.co.jp>");
+    test("fwgk4906@mb.infoweb.ne.jp (=?ISO-2022-JP?B?GyRCRiMwZhsoSg==?=  \n       =?ISO-2022-JP?B?GyRCPy0ycBsoSg==?=  <Shinsuke Fujii.>)");
 }
 
 test(s1)
@@ -206,7 +219,7 @@ xrealloc(p, len)
 {
     void *np;
 
-    if (p == NULL || p <= 0) {
+    if (p == NULL) {
 	fprintf(stderr, "Invalid pointer for realloc (0x%x)\n", p);
 	exit(1);
     }

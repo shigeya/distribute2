@@ -6,12 +6,28 @@
  *	Copyright(c)1993 Shigeya Suzuki
  */
 
+#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4)
+#undef SVR4
+#define SVR4
+#endif
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include <sysexits.h>
 #include <sys/types.h>
 #include <sys/param.h>
+
+#include <limits.h>
+#ifndef NCARGS
+#ifdef _POSIX_ARG_MAX
+#define NCARGS _POSIX_ARG_MAX
+#else
+#ifdef ARG_MAX
+#define NCARGS ARG_MAX
+#endif
+#endif
+#endif
 
 #include "longstr.h"
 
@@ -93,7 +109,11 @@ ls_append(p, str, len)
 	ls_grow(p, len+1);
     }
 
+#ifdef SVR4
+    memcpy(p->ls_ptr, str, len);
+#else
     bcopy(str, p->ls_ptr, len);
+#endif
     
     p->ls_ptr += len;
     p->ls_used += len;

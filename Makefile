@@ -20,6 +20,7 @@ RCONFIG=-DRELEASESTATE=\"Alpha\"
 #	-DUSESUID		include SUID support code
 #	-DSTRSTR_MISSING	strstr() missing (Ex: NEWSOS 4.x)
 #	-DMSC			MSC Style Subject
+#	-DSVR4
 #
 OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION \
 	-DSYSLOG_FACILITY=LOG_LOCAL4 -DCCMAIL
@@ -70,16 +71,21 @@ CFLAGS=	-g ${OPTIONS} ${DEFAULTCONFIG} ${RCONFIG}
 
 LIBS=
 MAKE=	make
-PERL=	perl
 CC= 	gcc
 
-WHERE=	/usr/lib
-MANDIR=	/usr/man
+WHERE=	/usr/local/libexec
+MANDIR=	/usr/local/man
 MANSEC=	1
 
 # Install as
 OWNER=	daemon
 GROUP=	daemon
+
+# install
+INSTALL= install -c
+
+# perl
+PERL=perl
 
 # C source files
 OTHERSRC=	header.c history.c logging.c \
@@ -122,16 +128,16 @@ xarchive: ${AOBJS}
 	@size xarchive
 
 install: xdistribute distribute.1 xarchive
-	install -c -s -o ${OWNER} -g ${GROUP} -m 511 xdistribute \
+	${INSTALL} -s -o ${OWNER} -g ${GROUP} -m 511 xdistribute \
 		${DESTDIR}${WHERE}/distribute
-	install -c -s -o ${OWNER} -g ${GROUP} -m 511 xarchive \
+	${INSTALL} -s -o ${OWNER} -g ${GROUP} -m 511 xarchive \
 		${DESTDIR}${WHERE}/archive
-	install -c -m 444 distribute.1 \
+	${INSTALL} -m 444 distribute.1 \
 		${DESTDIR}${MANDIR}/man${MANSEC}/distribute.${MANSEC}
 
 testinst: xdistribute xarchive
-	install -c -s -o root -g wheel -m 511 distribute test
-	install -c -s -o root -g wheel -m 511 archive test
+	${INSTALL} -s -o root -g wheel -m 511 distribute test
+	${INSTALL} -s -o root -g wheel -m 511 archive test
 
 clean:
 	rm -f a.out *.core core ${DOBJS} ${AOBJS} xdistribute xarchive mestab.h

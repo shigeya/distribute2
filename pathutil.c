@@ -6,6 +6,11 @@
  * Copyright(c)1993,1994 Shigeya Suzuki
  */
 
+#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4)
+#undef SVR4
+#define SVR4
+#endif
+
 #include <stdio.h>
 #include <sysexits.h>
 #include <string.h>
@@ -15,7 +20,12 @@
 #include "memory.h"
 #include "pathutil.h"
 
+#ifdef SVR4
+extern char *strrchr();
+#define	rindex	strrchr
+#else
 extern char *rindex();
+#endif
 
 /* make default path
  */

@@ -150,20 +150,20 @@ euc_to_iso2022jp(from)
     ls_init(&buf);
     ls_reset(&buf);
 
-    for (s= (unsigned char*)from; *s; s++) {
+    for (s = (unsigned char*)from; *s; s++) {
 	if (*s >= 0x80) {
 	    if (!inkanji) {
 		ls_appendstr(&buf, JISIN);
 		inkanji++;
 	    }
-	    ls_appendchar(&buf,(int)*s);
+	    ls_appendchar(&buf, *s & 0x7f);
 	}
 	else {
 	    if (inkanji) {
 		ls_appendstr(&buf, JISOUT);
 		inkanji--;
 	    }
-	    ls_appendchar(&buf,(int)*s);
+	    ls_appendchar(&buf, *s);
 	}
     }
 

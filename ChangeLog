@@ -1,3 +1,15 @@
+Fri Sep 12 11:43:06 1997  Shigeya Suzuki  <shigeya@werdna.foretune.co.jp>
+
+	* -M behavior fix (from toshi@isl.rdc.toshiba.co.jp)
+
+	* euc_to_iso2022jp: strip 8th bit.
+
+	* Reject specific address patch from y-koga@ccs.mt.nec.co.jp
+
+	* X-Reference patch from hiro@is.s.u-tokyo.ac.jp
+
+	* Makefile: Solaris patch
+
 Mon Jan  6 17:45:17 1997  Shigeya Suzuki  <shigeya@werdna.foretune.co.jp>
 
 	* distribute.c: archive/distribute index 書き込みの順番の問題解決。

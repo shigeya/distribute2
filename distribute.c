@@ -6,28 +6,35 @@
  * This program is originally written by Steve Miller.
  * Later, heaviliy modified by group of people in Japan.
  *
- * Modified portions Copyright (c) 1990-1994 by Shigeya Suzuki,
+ * Modified portions Copyright (c) 1990-1997 by Shigeya Suzuki,
  * Shin Yoshimura, Yoshitaka Tokugawa, Hiroaki Takada and
- * Susumu Sano.  Permission is granted to use, but not for sell.
+ * Susumu Sano and other contributors.
+ *
+ * Permission is granted to use, but not for sell.
  *
  *
  *	Shin Yoshimura		<shin@wide.ad.jp>
- *	Yoshitaka Tokugawa	<toku@dit.co.jp>
+ *	Yoshitaka Tokugawa	<toku@wide.ad.jp>
  *	Shigeya Suzuki		<shigeya@foretune.co.jp>
  *	Hiroaki Takada		<hiro@is.s.u-tokyo.ac.jp>
  *      Susumu Sano 		<sano@wide.ad.jp>
  *	Youichirou Koga		<y-koga@ccs.mt.nec.co.jp>
  */
 
+#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4) || defined(hpux)
+#undef SVR4
+#define SVR4
+#endif
 
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#if defined(nec_ews_svr4) || defined(_nec_ews_svr4)
+#ifdef SVR4
 #include <netdb.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "sysexits.h"
+#include <sys/systeminfo.h>
 #else
 #include <sysexits.h>
 #endif
@@ -36,6 +43,10 @@
 #include <sys/param.h>
 #include <unistd.h>
 #include <string.h>
+
+#ifdef SVR4
+#define	index	strchr
+#endif
 
 #if defined(__bsdi__)		/* may be wrong -- we need to use NET/2 def.*/
 # include <paths.h>		/* for sendmail path */
@@ -79,6 +90,7 @@ char *index_path = DEF_ARCHIVE_PATH;
 char *seq_suffix = DEF_SEQ_SUFFIX;
 char *recipient_suffix = DEF_RECIPIENT_SUFFIX;
 char *accept_suffix = DEF_ACCEPT_SUFFIX;
+char *reject_suffix = DEF_REJECT_SUFFIX;
 char *index_name = DEF_INDEX_NAME;
 
 char openaliaschar = DEF_OPENALIAS_CHAR;
@@ -104,6 +116,7 @@ char dommaintainer[MAXADDRLEN];		 /* address of the maintainer */
 char *headererr = NULL;
 char *recipientbuf = NULL;
 char *acceptbuf = NULL;
+char *rejectbuf = NULL;
 char *originatorreplyto = NULL;
 char subjectbuf[MAXSUBJLEN];
 char *originator = NULL;
@@ -130,7 +143,9 @@ int addversion = 1;	/* Add X-Distribute: header or not (default TRUE) */
 #endif
 int badhdr = 0;		/* something is fishy about the header */
 int wasadmin = 0;	/* was a noise message */
+int wasrejected = 0;	/* rejected message */
 int badnewsheader = 0;	/* incoming article is not likely news2mail article */
+int badoriginator = 0;  /* origintor address invalid */
 int zaprecv = 0;	/* zap received lines */
 int lessnoise = 0;	/* run ``please add/delete me'' filter */
 int forcereplyto = 0;	/* ignore reply to */
@@ -155,6 +170,7 @@ char *sendmailargs = NULL;	 /* add'l args to sendmail */
 char *issuefile = NULL;
 char *recipfile = NULL;
 char *acceptfile = NULL;
+char *rejectfile = NULL;
 char *headerfile = NULL;
 char *footerfile = NULL;
 char *archivedir = NULL;
@@ -350,7 +366,7 @@ usage()
     fprintf(stderr, "\t[-P precedence] [-m sendmail-flags] [-C archive-dir]\n");
     fprintf(stderr, "\t[-Z indexfile]\n");
     
-    fprintf(stderr, "\t[-ADORVXdeijnosxt] {-L recip-addr-file | recip-addr ...}\n");
+    fprintf(stderr, "\t[-ADKORVXdeijnosxt] {-L recip-addr-file | recip-addr ...}\n");
 }
 
 printversion()
@@ -399,6 +415,7 @@ printversion()
     fprintf(stderr, "\t Default sequence suffix:  %s\n", DEF_SEQ_SUFFIX);
     fprintf(stderr, "\t Default recipient suffix: %s\n", DEF_RECIPIENT_SUFFIX);
     fprintf(stderr, "\t Default accept suffix: %s\n", DEF_ACCEPT_SUFFIX);
+    fprintf(stderr, "\t Default reject suffix: %s\n", DEF_REJECT_SUFFIX);
     fprintf(stderr, "\t Default index filename: %s\n", DEF_INDEX_NAME);
     exit(0);
 }
@@ -432,6 +449,8 @@ parse_options(argc, argv)
 					   recipient_suffix, majordomo);
 	    acceptfile = adddefaultpath(recipient_path, optarg,
 					accept_suffix, 0);
+	    rejectfile = adddefaultpath(recipient_path, optarg,
+					reject_suffix, 0);
 	    break;
 	    
 	case 'N':	/* generic maillinglist without reply-to */
@@ -449,6 +468,8 @@ parse_options(argc, argv)
 					   recipient_suffix, majordomo);
 	    acceptfile = adddefaultpath(recipient_path, optarg,
 					accept_suffix, 0);
+	    rejectfile = adddefaultpath(recipient_path, optarg,
+					reject_suffix, 0);
 	    break;
 	    
 	case 'j':	/* MAJORDOMO style recipient file path*/
@@ -514,7 +535,8 @@ parse_options(argc, argv)
 	    
 	case 'I':	/* add isssue number */
 	case 'v':	/* add vol issue header */
-	    issuefile = adddefaultpath(seq_path, optarg, "", 0);
+	    issuefile = adddefaultpath(seq_path, optarg,
+				       seq_suffix, 0);
 	    break;
 	    
 	case 'i':	/* force ignore replyto */
@@ -542,11 +564,21 @@ parse_options(argc, argv)
 	    break;
 	    
 	case 'L':	/* recip-addr-file */
-	    recipfile = adddefaultpath(recipient_path, optarg, "", majordomo);
+	    if (majordomo)
+		recipfile = adddefaultpath(majordomo_recipient_path,
+					   optarg,"", majordomo);
+	    else
+		recipfile = adddefaultpath(recipient_path, optarg,
+					accept_suffix, 0);
 	    break;
 	    
 	case 'A':	/* accept-addr-file */
-	    acceptfile = adddefaultpath(recipient_path, optarg, "", 0);
+	    acceptfile = adddefaultpath(recipient_path, optarg,
+					accept_suffix, 0);
+	    break;
+	    
+	case 'K':	/* reject-addr-file */
+	    rejectfile = adddefaultpath(recipient_path, optarg, "", 0);
 	    break;
 	    
 	case 'P':	/* precedence */
@@ -636,7 +668,11 @@ init_distribute()
 #ifdef DEF_DOMAINNAME
     host = DEF_DOMAINNAME;
 #else
+#ifdef SVR4
+    sysinfo(SI_HOSTNAME, myhostname, (long) sizeof(myhostname));
+#else
     gethostname(myhostname, sizeof(myhostname));
+#endif
     host = myhostname;
 #endif
 
@@ -661,7 +697,7 @@ int
 parse_and_clean_header(file)
     FILE *file;
 {
-    char addrbuf[MAXADDRLEN];
+    static char addrbuf[MAXADDRLEN]; /* is *NOT* fancy.. */
     
     /* Read all of the headers and make a header vector
      */
@@ -675,7 +711,7 @@ parse_and_clean_header(file)
 	    strcpy(frombuf, header);
 	    header = normalizeaddr(frombuf);
 
-	    if (strcmp(newstrim, header) == 0) {
+	    if (header != NULL && strcmp(newstrim, header) == 0) {
 		head_free(headc, headv);
 		headc = head_parse(MAXHEADERLINE, headv, stdin);
 	    }
@@ -708,8 +744,16 @@ parse_and_clean_header(file)
     strcpy(addrbuf, originator);
     originator = normalizeaddr(addrbuf);
 
-	while (originator[0] == ' ')
-		originator++;
+    if (originator == NULL) {
+	badoriginator = 1;
+	originator = "postmaster"; /* force use this */
+    }
+
+    if (originator != NULL) {
+	while (originator[0] == ' ') {
+	    originator++;
+	}
+    }
 
     /*
      * Clean header
@@ -845,8 +889,9 @@ prepare_arguments(argc, argv)
     argappend(dommaintainer);
     
 #ifdef CCMAIL
-	if (strcmp(subject, "cc:Mail SMTPLINK Undeliverable Message") == 0 ||
-		strcmp(subject, "Message not deliverable") == 0) {
+	if (strcmp(subject, "cc:Mail SMTPLINK Undeliverable Message") == 0
+	    ||strcmp(subject, "Message not deliverable") == 0
+	    || strcmp(subject, "Unsent Message Returned to Sender") == 0) {
 		ccmail_error_message = 1;
 		argappend(" ");
 		argappend(originator);
@@ -869,6 +914,10 @@ prepare_arguments(argc, argv)
     
     if (acceptfile != NULL) {
 	acceptbuf = parserecipfile(acceptfile, 0);
+    }
+    
+    if (rejectfile != NULL) {
+	rejectbuf = parserecipfile(rejectfile, 0);
     }
 
     for (i = optind ; i < argc ; i++)
@@ -936,6 +985,25 @@ prepare_arguments(argc, argv)
 	    }
 	}
     }
+
+    /* Reject hack */
+    {
+	char *from, *rejaddr;
+	char addrbuf[MAXADDRLEN];
+
+	strcpy(addrbuf,
+	       head_find(headc, headv, "From:") + sizeof("From:") - 1);
+	from = normalizeaddr(addrbuf);
+    
+	while (rejaddr = (char *)strsep(&rejectbuf, " ")) {
+	    int rejlen = strlen(rejaddr);
+	    if (!strncasecmp(from, rejaddr, rejlen) ||
+		!strncasecmp(originator, rejaddr, rejlen)) {
+		wasrejected = 1;
+		break;
+	    }
+	}
+    }
 }
 
 int
@@ -968,8 +1036,6 @@ acceptcheck(buf, pat)
     }
     return 0;
 }
-
-
 
 /* AddAliasIDToHeader -- This function format then insert X-SOMETHING style
  * identifier in header.
@@ -1120,7 +1186,7 @@ send_message()
 	}
     }
     
-    /* If something wrong going on. So bounce the mail to maintainer or
+    /* If something wrong going on. Bounce the mail to maintainer or
      * originator.
      */
     if (badnewsheader) {
@@ -1128,23 +1194,31 @@ send_message()
 	logwarn("Unsent message: Not a news article. Forwarded to %s",
 		dommaintainer);
 	reject = 1;
-    }
-    else if (badhdr) {		/* if header is bad */
+    } else if (badhdr) {		/* if header is bad */
 	messageprint(pipe, badheader, originator, headererr);
 	logwarn("Unsent message: Header problem. Bounce to %s and %s",
 		originator, dommaintainer);
 	reject = 1;
-    }
-    else if (wasadmin) {		/* if header is bad */
+    } else if (wasadmin) {		/* if header is bad */
 	messageprint(pipe, administrative, dommaintainer);
 	logwarn("Unsent message: Administrative message. Forwarded to %s",
 		dommaintainer);
 	reject = 1;
-    }
-    else if (acceptcheck(acceptbuf, originator) == 0) {
+    } else if (acceptcheck(acceptbuf, originator) == 0) {
 	messageprint(pipe, notallowed, dommaintainer);
 	logwarn("Unsent message: Can't accept message from %s. Bounce to %s also",
 		originator, dommaintainer);
+	reject = 1;
+    } else if (wasrejected) {
+	messageprint(pipe, rejected, dommaintainer);
+	logwarn("Unsent message: Rejected message from %s. Forwarded to %s",
+		originator, dommaintainer);
+	reject = 1;
+    }
+    else if (badoriginator) {
+	messageprint(pipe, badoriginator, dommaintainer);
+	logwarn("Unsent message: Originator address invalid. Forwarded to %s",
+		dommaintainer);
 	reject = 1;
     }
 
@@ -1412,8 +1486,8 @@ getnextissue(filename)
 		close(fd);
 		return 1;
 	}
-#if defined(nec_ews_svr4) || defined(_nec_ews_svr4)
-	lockf(fd, F_LOCK);
+#ifdef SVR4
+	lockf(fd, F_LOCK, 0);
 #else
 	flock(fd, LOCK_EX);
 #endif
@@ -1431,8 +1505,8 @@ getnextissue(filename)
 	lseek(fd, 0L, L_SET);
 	sprintf(buf, "%d\n", issue);
 	write(fd,buf,strlen(buf));
-#if defined(nec_ews_svr4) || defined(_nec_ews_svr4)
-	lockf(fd, F_ULOCK);
+#ifdef SVR4
+	lockf(fd, F_ULOCK, 0);
 #else
 	flock(fd, LOCK_UN);
 #endif

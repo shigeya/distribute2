@@ -6,6 +6,11 @@
  * Copyright(c)1993 Shigeya Suzuki
  */
 
+#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4)
+#undef SVR4
+#define SVR4
+#endif
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -13,6 +18,10 @@
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/param.h>
+
+#ifdef SVR4
+#define	rindex	strrchr
+#endif
 
 #ifdef SYSLOG
 # include <syslog.h>

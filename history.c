@@ -12,6 +12,11 @@
  * (3) Does not waste memory.
  */
 
+#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4) || defined(hpux)
+#undef SVR4
+#define SVR4
+#endif
+
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sysexits.h>
@@ -42,7 +47,11 @@ openhistory(name, mode)
     }
 
     fd = fileno(fp);
+#ifdef SVR4
+    lockf(fd, F_LOCK, 0);	/* lock the file */
+#else
     flock(fd, LOCK_EX);		/* lock the file */
+#endif
     filename = strsave(name);
     file = fp;
     file_fd = fd;
@@ -52,7 +61,11 @@ void
 closehistory()
 {
     if (file != NULL) {
+#ifdef SVR4
+	lockf(file_fd, F_ULOCK, 0);
+#else
 	flock(file_fd, LOCK_UN);
+#endif
 	fclose(file);
 	file = NULL;
 	file_fd = -1;

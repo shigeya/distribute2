@@ -156,6 +156,40 @@ jp	notanews_jp	euc_to_iso2022jp
 *	notanews_us	none
 &
 
+############################################################# rejected
+
+@ rejected_us
+To: %M
+From: The Distribute Mailinglist Handler <%M>
+Subject: Distribute: Message from rejected address
+
+Following article for mailing list "%L" has been rejected
+because it came from rejected address.
+
+distribute -- Your mailing list handler.
+
+---- unsent message header follows ----
+@
+
+@ rejected_jp
+To: %M
+From: The Distribute Mailinglist Handler <%M>
+Subject: Distribute: Message from rejected address
+
+以下の "%L"メーリングリスト向けメッセージは、rejected に登録された
+アドレスからのメッセージであったため、メーリングリストに送られませんでした。
+
+"%L" 管理人代理 distribute
+
+---- unsent message header follows ----
+@
+
+& rejected
+jp	rejected_jp	euc_to_iso2022jp
+*	rejected_us	none
+&
+
+
 ################################################################# ccmailerr
 
 @ ccmailerr_us
@@ -200,4 +234,40 @@ cc:Mail SMTPLINK は Errors-To: を正しく認識しません。そのため、
 & ccmailerr
 jp	ccmailerr_jp	euc_to_iso2022jp
 *	ccmailerr_us	none
+&
+
+########################################################### badoriginatormsg
+
+@ badoriginatormsg_us
+To: %M
+From: The "%L" mailing list maintainer <%M>
+Subject: Can't deliver message -- bad originator address
+
+The originator address of this message seems bad. Please check it and
+notify originator.
+
+distribute -- Your mailing list handler.
+
+---- unsent message header follows ----
+@
+
+@ badoriginatormsg_jp
+To: %O
+Cc: %M
+From: The "%L" mailing list maintainer <%M>
+Subject: Can't deliver message -- bad originator address
+
+こちらはメーリングリストハンドラ distribute です。
+
+このメッセージの発信人のメールアドレスが正しくありません。確認の上、発
+信者に連絡してください。
+
+"%L" 管理人代理 distribute
+
+---- unsent message header follows ----
+@
+
+& badoriginatormsg
+jp	badoriginatormsg_jp	euc_to_iso2022jp
+*	badoriginatormsg_us	none
 &

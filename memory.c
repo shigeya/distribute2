@@ -3,6 +3,11 @@
  * Memory managers
  */
 
+#if defined(__svr4__) || defined(nec_ews_svr4) || defined(_nec_ews_svr4)
+#undef SVR4
+#define SVR4
+#endif
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sysexits.h>
@@ -43,7 +48,11 @@ strsave(p)
 {
     int len = strlen(p) + 1;
     char *d = xmalloc(len);
+#ifdef SVR4
+    memcpy(d, p, len);
+#else
     bcopy(p, d, len);
+#endif
     return d;
 }
 
@@ -55,7 +64,11 @@ memsave(p, len)
     size_t len;
 {
     char *d = xmalloc(len);
+#ifdef SVR4
+    memcpy(d, p, len);
+#else
     bcopy(p, d, len);
+#endif
     return d;
 }
 

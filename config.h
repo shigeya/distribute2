@@ -39,6 +39,11 @@
 # define DEF_ACCEPT_SUFFIX	".acc"
 #endif
 
+
+#ifndef DEF_REJECT_SUFFIX
+# define DEF_REJECT_SUFFIX    ".rej"
+#endif
+
 #ifndef DEF_INDEX_NAME
 # define DEF_INDEX_NAME		"INDEX"
 #endif
