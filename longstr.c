@@ -1,4 +1,4 @@
-/* $Id$
+/* longstr.c,v 1.4 1994/02/10 05:40:48 shigeya Exp
  *
  *	Long string handler
  *
@@ -86,7 +86,7 @@ ls_grow(p, size)
 void
 ls_append(p, str, len)
     struct longstr *p;
-    void *str;
+    char *str;
     size_t len;
 {
     if (p->ls_size == 0 || (p->ls_size - p->ls_used) < len) {
@@ -108,4 +108,15 @@ ls_appendstr(p, str)
     char *str;
 {
     ls_append(p, str, strlen(str));
+}
+
+/* ls_appendchar -- add a char at end
+ */
+void
+ls_appendchar(p, ch)
+    struct longstr *p;
+    int ch;
+{
+    char buf = ch;
+    ls_append(p, &buf, 1);
 }

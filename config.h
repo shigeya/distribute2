@@ -1,4 +1,4 @@
-/* $Id$
+/* config.h,v 1.5 1994/02/01 04:07:59 shigeya Exp
  *
  *	Distribute configuration information
  */
@@ -35,6 +35,14 @@
 # define DEF_RECIPIENT_SUFFIX	".rec"
 #endif
 
+#ifndef DEF_ACCEPT_SUFFIX
+# define DEF_ACCEPT_SUFFIX	".acc"
+#endif
+
+#ifndef DEF_INDEX_NAME
+# define DEF_INDEX_NAME		"INDEX"
+#endif
+
 #ifdef MSC
 # define DEF_OPENALIAS_CHAR	'['
 # define DEF_CLOSEALIAS_CHAR	']'
@@ -45,6 +53,10 @@
 #endif
 #ifndef DEF_CLOSEALIAS_CHAR
 # define DEF_CLOSEALIAS_CHAR	')'
+#endif
+
+#ifndef	ALIAS_SPACE_CHAR
+# define ALIAS_SPACE_CHAR	'-'
 #endif
 
 #ifndef SYSLOG_FACILITY
@@ -59,12 +71,17 @@
 #define	MAXSUBJLEN	4096	/* we assume subject will no
 				 * longer than this length */
 
+#define	MAXMESSAGEIDLEN	512	/* we assume message id is no longer than this
+				 */
+
 #define	MAXHEADERLINE	1000	/* number of headers allowed */
 
 
 #define MAXHEADERLEN	16384	/* The maximum length of a header line
 				 * that we can handle, including all
 				 * continuation lines.  */
+#define MAXADDRLEN	1024	/* The maximum length of a address. */
+
 /*
  * Other set-ups
  */

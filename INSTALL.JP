@@ -1,0 +1,510 @@
+[[ This document is Written in Japanese (code: ISO-2022-JP) ]]
+				Document Copyright (c)1994 Shigeya Suzuki.
+
+
+
+Distribute のインストールの方法
+
+
+現在のバージョンのdistributeは、デフォルトで使う限り面倒はないのですが、
+手を加えたい場合は面倒かもしれません。近々 Configure 形式のセットアッ
+プを導入する予定ですので、それまで御辛抱願います。
+
+設定変更が必要な項目はすべて Makefile で設定できるようになっていますが、
+デフォルト値は config.h で指定されています。どちらかを修正してください。
+
+distributeは Brent Chapman の majordomo と組み合わせて使うと便利です。
+majordomoはメーリングリストに対してユーザを登録/削除することや、受取側
+の設定不良によるエラーメールが起きた時の対処メカニズムなど、運営時にあ
+りがちな面倒をかなり処理してくれます。併用をお勧めします。
+
+
+
+1. メーリングリスト用のディレクトリの選択
+							↓デフォルト値
+   A メーリングリストに関連するファイルを置く場所	/usr/lib/mail-list
+   B 記事をアーカイブする場所				/usr/spool/mail-list
+
+   以上二箇所を決めてください。とくに A は現在コンパイル時指定しか出来ない
+   ので注意してください。面倒であれば、シンボリックリンクをつかうのも手で
+   しょう。
+
+   majorodomo をメーリングリストハンドラとする場合、majorodomo 関連の
+   ファイルを置く場所も決める必要があります。デフォルトでは、
+   /usr/lib/mail-list/majordomo となっています。
+
+
+2. distribute のコンパイル
+
+   以下のオプションを設定可能です。一般に、SYSLOG_FACILITYと
+   ディレクトリ設定以外は変更の必要はないでしょう。
+
+
+   -DSYSLOG		syslogを利用してエラーログを出力する
+
+   -DISSUE -DSUBJALIAS	Subject: (mlname number) 形式のサブジェクトを生成
+			するようになります。両方指定してください。
+
+   -DMSC		MSC 形式のヘッダにする。
+
+   -DADDVERSION		X-Distribute: 形式のバージョンIDを付加します。
+
+   -DSYSLOG_FACILITY=LOG_LOCAL?
+			syslog を用いる場合に用いるfacilityを指定します。
+			出荷時はLOG_LOCAL4 が設定されています。
+
+   -DDEF_DOMAINNAME=\"MYDOMMAIN.JP\"
+			distribute が動くホストのドメイン名を指定します。
+			このドメイン名はメーリングリスト名や Errors-To:
+			その他のアドレスを生成する場合に使われますので、
+			このような場合にGeneric domain 名を用いたい場合に
+			用います。これが設定されない場合は、gethostname
+			で返されるホスト名が使われます。
+
+			たとえば、foretune.co.jpのメールサーバは
+			lizard.foretune.co.jp なので、設定しなければ
+			lizard.foretune.co.jpが使われますが、これは
+			都合よくありませんので、foretune.co.jpという
+			Generic domain 名を指定します。
+
+			これは -h オプションでコマンドラインからも
+			指定出来ますが、メンテナンス上はデフォルトを
+			変更してしまったほうが便利でしょう。
+
+   -DDEF_SEQ_PATH	SUBJALIASなどを指定した場合、メッセージ番号
+			をファイルとして保存しますが、このファイルを
+			書き込むディレクトリを指定します。
+			デフォルトは/usr/lib/mail-listです。
+
+   -DDEF_SEQ_SUFFIX	メッセージ番号ファイルのサフィックスを指定します。
+			デフォルトは .seq となっています。
+
+   -DDEF_RECIPIENT_SUFFIX
+			購読者ファイルのサフィックスを指定します。
+			デフォルトは .rec となっています。
+			ただし、majordomo option (-j) が用いられた場合は
+			この値は無視されサフィックス無しとなります。
+
+   -DDEF_ALIAS_CHAR_OPTION
+			Subject: (alias num) 形式のサブジェクトを用いる場合の
+			() を選択します。これは -B オプションで指定する
+			文字列と同一です。オプションの指定を御覧ください。
+			デフォルトは ( ) となっています。
+
+   -DDEF_RECIPIENT_PATH	購読者ファイルが入っているディレクトリを指定します。
+			購読者ファイルについては後で述べます。
+			デフォルトは/usr/lib/mail-list です。
+
+   -DDEF_MAJORDOMO_RECIPIENT_PATH
+			majorodom を用いる場合の購読者リストが入ってい
+			るディレクトリを指定します。
+			デフォルトは/usr/lib/mail-list/majordomo/lists です。
+
+これらの設定を Makefile の DEFAULTCONFIG 行を変更することで指定してく
+ださい。上記全てはdistribute起動時のオプションで指定可能ですが、オプショ
+ン指定が繁雑になるので、パスの設定とサフィックスの設定が必要な場合は、
+コンパイル時の変更しておいたほうが無難でしょう。
+
+修正後に make します。
+
+現時点で SunOS 4.1.3 と BSD/386 1.0 上での動作を確認しています。
+
+
+3. インストール
+
+xdistribute と xarchive という二つのプログラムができますので、適当な場
+所にコピーします。ここでは、/usr/lib/distribute /usr/lib/archive にイ
+ンストールしたことにします。
+
+
+4. メーリングリストのセットアップ
+
+以下、メーリングリストのセットアップ方法を記述します。便宜上、メーリン
+グリスト名を ML とします。
+
+
+4.1 majordomo を用いない場合
+
+4.1.1 sendmail の alias を作成してください
+
+	ML: :include:/usr/lib/mail-list/ML.run
+	ML-request: owner-ML
+	owner-ML: shigeya
+
+4.1.2 ３つのファイルを/usr/lib/mail-listディレクトリに作成します。
+
+	FILE: ML.run -- 以下の一行のコマンドを書き込みます
+
+		"| /usr/lib/distribute -M ML"
+
+	FILE: ML.seq -- 記事番号のファイルです。0 を入れておくと、
+			次の記事は1になります。
+
+		0
+
+	FILE: ML.rec -- 購読者ファイルです。一行あたり一つのアドレスを記述
+			してください。#で始まる行はコメントとして解釈され、
+			通常のRFC822で有効なアドレスは正しく解釈されます。
+
+		shigeya@foretune.co.jp (Shigeya Suzuki)
+		Shigeya Suzuki <shigeya@wide.ad.jp>
+
+	このファイルについては「購読者ファイル」という項目を御覧ください。
+
+	.seq と .run ファイルのオーナは、owner-ML で指定されているユーザになる
+	ようにしてください。sendmail R8 では owner- で指定されているユーザでこ
+	れらのプログラムが起動されるためです。
+
+以上で設定終了です。
+
+
+4.2 majordomo を用いる場合
+
+	majordomo を用いる場合は、先に指定した majorodmo のディレクトリに 
+	majorodmo をインストールし、そのディレクトリ内の lists というディレク
+	トリに majordomo 関連ファイルを作成します。
+
+4.2.1 sendmail の alias を作成してください。
+
+	majordomoを用いない場合と比べて、２行追加されています。
+	これはmajordomoの処理のためです。
+
+		ML: :include:/usr/lib/mail-list/ML.run
+		ML-request: "|/usr/lib/mail-list/majordomo/wrapper request-answer ML"
+
+		ML-owner: owner-ML
+		owner-ML: shigeya
+		ML-approval: shigeya
+
+4.2.2 ２つのファイルを/usr/lib/mail-listディレクトリに作成します。
+
+	FILE: ML.run -- 以下の一行のコマンドを書き込みます
+
+		"| /usr/lib/distribute -j -M ML"
+
+	FILE: ML.seq -- 記事番号のファイルです。0 を入れておくと、
+		次の記事は1になります。
+
+		0
+
+	.seq と .run ファイルのオーナは、owner-ML で指定されているユー
+	ザになるようにしてください。sendmail R8 では owner- で指定され
+	ているユーザでこれらのプログラムが起動されるためです。
+
+
+4.2.3 購読者ファイルなど majordomo 管理のファイルの設定
+
+	購読者ファイルはmajordomoが管理しますので、majordomoのディレクトリに自
+	動作成されます。以下のファイルが最低限必要です。
+
+	/usr/lib/mail-list/majordomo/lists/ML		<- 空のファイル
+	/usr/lib/mail-list/majordomo/lists/ML.passwd	<- 管理パスワード
+	/usr/lib/mail-list/majordomo/lists/ML.info	<- メーリングリスト情報
+
+	以下のフラグ（ファイル)も必要なら用意します。
+
+	/usr/lib/mail-list/majordomo/lists/ML.closed
+	/usr/lib/mail-list/majordomo/lists/ML.private
+	/usr/lib/mail-list/majordomo/lists/ML.strip
+
+	ML は majordomo が常に小文字でメーリングリスト名を管理するため、
+	majordomoの関係する上記のファイルは、distribute の引数によらず、
+	小文字にしてください。-j オプションを与えると、distributeは購読者
+	ファイル名のメーリングリスト名の部分は小文字変換します。例えば、
+
+		distribute -j -M BSD-on-386
+
+	としている場合は、
+
+		/usr/lib/mail-list/majordomo/lists/bsd-on-386
+
+	が購読者ファイルとなります。.passwd/.closed などのファイルも同様です。
+	(注: .seq ファイル、.run ファイル関連は大文字小文字を区別します。)
+
+	lists ディレクトリに置かれるファイルは majordomo が読み書きで
+	きる必要がありますので、オーナを majordomoにするのが賢明でしょ
+	う。
+
+	詳しい majordomo のセットアップについては majordomoのドキュメントを御
+	覧ください。
+
+以上でセットアップ終了です。
+
+
+4.3 アーカイブ機能の設定
+
+	アーカイブを行いたい場合は、先の設定を少々変更します。
+
+4.3.1 .run ファイルの変更
+
+	-x オプションを追加します。更に、ML-archiveというアドレスを受
+	信者として設定します。
+
+		"| /usr/lib/distribute -M ML -x ML-archive"
+
+	-x オプションによって、アーカイブディレクトリ(/usr/spool/mail-list/ML)
+	に INDEX ファイルが作成されるようになります。
+
+	注意: ML-archive は -x の引数ではなく、ML-archiveを受け取り人アドレス
+	      として追加するという意味です。ご注意願います。したがって、
+	      オプションを追加する場合は-x ML-archiveより前に追加してください。
+
+4.3.2 ML-archive の設定
+
+	sendmail alias に
+
+		ML-archive: :include:/usr/lib/mail-list/ML-archive.run
+		owner-archive: shigeya
+
+	を設定します。
+
+
+4.3.3 ML-archive.run の作成
+
+	/usr/lib/mail-list/ML-archive.run に
+
+		"| /usr/lib/archive -M ML"
+
+	を設定します。
+
+
+以上で設定終了です。
+
+
+5.  distribute の option
+
+     上記設定例では、一番簡単、かつ標準的な設定を説明しました。
+     ここでは、オプションについて少し細かく説明します。
+
+     オプション以外の引数が現れると、そこから後は受け取り人のアドレス
+     として解釈されます。これは、購読者ファイルに「追加して」使われる
+     アドレスとなりますのでご注意願います。
+
+
+     基本オプション
+
+	-j		majordomo を使う場合に指定します。
+			「必ず」 一番最初に指定してください。
+
+	-M ML		-e -q -a ML -r ML -l ML -I ML -L ML
+			と等価。Errors-To、X-Sequence, Alias Subject,
+			Reply-Toを付け、デフォルトディレクトリから
+			各種設定ファイルを読み込みます。
+
+	-N ML		-M の代わりに用います。
+			Reply-To: (-r ML) が付かない以外は同じです。
+
+
+     必要なら、.runファイルに以下のオプションを追加してください:
+
+	-i		デフォルトでは、Reply-To: があった場合、
+			そのReply-To:を残しますが、-iを使うと、
+			常にReply-To:を書き換えます。
+
+	-R		Recieved-By: 行を全て削除します。
+
+	-h host		generic host name を指定します。
+			(コンパイル時の指定を override します)
+
+	-n news_from	mailtonews を再配布したい時に指定します。
+			メールの From: が news_from と一致した場合のみ、
+			不必要なメールヘッダを削除して配布処理をします。
+
+	-r reply-to	Reply-To: の変更を行ないます。
+			@ を含む場合はそのまま、含まない場合は、
+			@HOST (-h またはコンパイル時指定) を使います。
+			メーリングリストの再配布をしている場合に有効です。
+
+	-B bracedef	Subject のフォーマットを変更します。
+
+			一文字option			形式
+			-B c または -B C	Subject: {Alias 1}
+			-B b または -B B	Subject: [Alias 1}
+			-B a または -B A	Subject: <Alias 1>
+			-B p または -B P	Subject: (Alias 1)
+
+			二文字option
+			-B openchclosech	opench と closech を用いる
+				(例 -B<>)	Subject: <Alias 1>
+				(例 -B)()	Subject: )Alias 1(
+
+			注意: open close は＊必ず＊違う文字を指定してください。
+			エラーになります。
+
+	-F footer	メールボディの直後に指定したファイルを挿入します。
+	-H header	メールボディの直前に指定したファイルを挿入します。
+
+	-t		Subject の変更をとりやめます。
+
+	-P precedence	Precedence: の指定を行ないます。
+			すでにPrecedenceがある場合は削除してから付加します。
+			-Pが指定されていない場合は削除は行なわれないので、
+			distributeが受けたメールをそのまま用います。
+
+	-m sendmailopt	sendmailを起動するときに追加指定するオプションを指定。
+
+
+
+    パス/ファイル名指定オプション
+
+	-Y archivepath	アーカイブを行なうパスを指定します
+			(default: /usr/spool/mail-list)
+
+	-Z index	インデックスファイル
+
+
+6. 運用
+
+通常、設定が正しくおこなわれれば、distribute の運用は極めて容易です。 
+owner- 宛にエラーメールが来た場合はログを見れば原因ははっきりすると思
+います。
+
+<< TO BE WRITTEN (little more) >>
+
+
+7. 補足事項
+
+
+7.1  File Permission と distributeの実行ユーザについての注意事項
+
+distribute は setuid/setgid しないでも正しく動作します。 
+
+実行時ユーザや File Permission の設定を誤ると、うまく動作しないばかり
+かエラーメールを多発するなどのトラブルが生じます。十分注意してください。 
+
+setuidすれば簡単にこれらの問題を避けられますが、本質的な解法とは言えま
+せん。distributeは十分注意してコーディングしてあるので、setuidしても、
+設定が正しければ安全であると思われます。しかし、穴がないとは言えません。
+
+distribute では、sendmail 5.67/8.6.x が alias :include: を用いてプログ
+ラムメーラが起動された場合に、:include:されたファイルの uid/gid で実行
+されることを利用しています。そのため、.run ファイルのuid/gidは重要です。
+
+sendmail 8.6.x をお使いの場合は、
+
+	ML.run		- 購読者ファイルを読めるユーザuid/gid
+			  (管理者が望ましい)
+	ML.rec または
+	majordomo/lists/ML
+			- ML.run の uid/gid で読めるようにする
+			  (同じuid/gidである必要はありません)
+	ML.seq		- ML.run の uid/gid で読み書き出来るようにする
+
+
+	ML-archive.run	- アーカイブファイルで用いたいユーザのuid/gid
+
+に設定すると、適切に処理されるでしょう。ただし、8.6.5 は例外的に処理に
+問題がありますので、8.6.6以降にアップグレードしてください。
+
+注意: archiveディレクトリのINDEXファイルは、
+
+	ML.runのuid/gidから読み書き出来なければいけません。 (Read Write)
+	ML-archive.run のuid/gid から読めなければいけません。 (Read Only)
+
+     さらに、最初に distribute が INDEX を作る時に /usr/spool/mail-list/ML
+     に ML.runのuid/gid から書き込めないとエラーになりますので御注意。
+     このディレクトリにML.runのuid/gidからかけないようにしたいのであれば、
+     touch INDEX したあと、かけるuid/gidに chown してください。distributeは
+     readとappendしか行なわないので、それで十分です。
+
+
+私の場合は、
+
+   file:
+	ML.run		mode: 555, owner: shigeya, group: wheel
+	ML.rec		mode: 644, owner: shigeya, group: wheel
+	ML.seq		mode: 644, owner: shigeya, group: wheel
+
+	majordomo/lists/ML
+			mode: 644, owner: majordom, group: majorodom
+
+	ML-archive.run	mode: 555, owner: shigeya, group: archive
+
+   directory:
+	/usr/spool/mail-list/ML
+			mode 755, owner:shigeya, group: archive
+	/usr/spool/mail-list/ML/INDEX
+			mode 644, owner:shigeya, group: archive
+
+としています。
+
+
+7.2 購読者ファイルのフォーマットについて
+
+購読者ファイルは、RFC822で許されるアドレスのほとんどを解析可能なように
+作ってあります。ただし、X.400のアドレスについては、まだdistributeでの
+実績が少ないため、うまくいかないかもしれません。
+
+購読者ファイルでは、コメントが許されています。#で始まる行の全ておよび、
+各行の # 以降はコメントとして見なされすべて削除されます。また、空行は
+全て無視されます。
+
+
+7.3 sendmailのオプションについて
+
+distribute は sendmail に対して -f (sender) オプションしか用いません。
+その他に、たとえば、
+
+	-oi	.<RETURN> をメールボディ末として解釈しない
+	-odq	Queueing を行ない、即座にdeliverしない
+
+などといったオプションを指定したいかもしれません。この場合は -m オプショ
+ンで指定してください。複数指定したい場合は、-m -oi -m -odq のように指
+定してください。
+
+
+7.3 不正なメールの取扱いについて。
+
+以下の問題があるメールは、投稿者に返信、または、管理者にフォワードされます。
+
+i) アドレス行が不正な場合(From, To または Cc)
+
+   () <> がバランスしていない場合などが該当します。
+
+   ただし、distribute の ヘッダパーサは sendmail より制限がきついので、
+   sendmail で問題にならなくても distribute が問題ありと判断することも
+   あります。
+
+ii) ニュース記事の再送を指定した場合(-n) で、From: が特定のパターンで
+    ない場合。
+
+    たとえば、 -n news@foretune.co.jp と指定したのにかかわらず、From:
+    が news@foretune.co.jp でなかった場合が該当します。
+
+iii) ノイズ不許可(-s) オプションが指定されている場合で、ノイズであると
+     判定された場合。
+
+iv) 投稿許可アドレスファイルが指定されている場合で、投稿許可されていない
+    アドレスから投稿があった場合。
+
+
+7.4 エラー処理
+
+distribute では以下の問題をエラーとして処理します。問題を突き止めやす
+くするために、SYSLOGオプションなどを用いてエラーログを保存することをお
+勧めします。
+
+
+<< TO BE WRITTEN >>
+
+
+8 その他
+
+8.1 メーリングリスト
+
+distribute-users というメーリングリストがあります。バグレポートやパッ
+チが無がれますので、御参加願います。参加するには、majordomo@foretune.co.jp
+宛に、
+	subscribe distribute-users
+
+というメールを送ってください。
+
+
+
+9 謝辞
+
+<< TO BE WRITTEN >>
+
+
+
+INSTALL.JP,v 1.7 1994/08/05 11:49:25 shigeya Exp

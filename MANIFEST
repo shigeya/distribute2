@@ -1,23 +1,35 @@
-# $Id$
+# MANIFEST,v 1.12 1994/02/13 13:46:40 shigeya Exp
 # Filename		Description
 
-ChangeLog		The Change Log
+INSTALL.JP		Installation Guide (in Japanese)
+ChangeLog		The Change Log (in Japanese/English)
+BugList			Current known bug list
 MANIFEST		THIS file
 Makefile		Makefile
 Makefile.pmake		Makefile for pmake
 NEWS			Latest NEWS, or modification
 README			Original README
 README.FIRST		Our README
+ToDo			The "TODO" list (in Japanese)
 config.h		Parameter Configuration File
 distribute.1		Man page
-distribute.c		Main
+distribute.c		Distribute Main
+archive.c		Archiver Main
 header.c		Header parser
 util.h			Utility functions
 patchlevel.h		the patchlevel file
 longstr.c		long string handling library
 longstr.h		long string handling library
-testlongstr.c		long string handling library test routines
 cdefs.h			ANSI C glue
-resultcheck.pl		result checking perl script
-parserecipfile.c	parse recipient file
-parserecipfile.test	parse recipient file test file
+recipfile.c		parse recipient file
+recipfile.h		parse recipient file (definition)
+message.tmpl		Message template file
+message.c		Reply message composer
+message.h		Reply message composer (definition)
+tmpl2c.pl		.tmpl file to .c file converter
+strutil.c		String Utilities
+strutil.h		String Utilities Header
+pathutil.c		Path handling utilities
+pathutil.h		Path handling utilities headers
+history.c		History related functions
+history.h		History related function definitions

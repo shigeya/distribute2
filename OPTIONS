@@ -1,0 +1,51 @@
+OPTIONS,v 1.2 1994/02/12 02:43:43 shigeya Exp
+
+Current Options of distribute/archive program
+
+
+-a ALIASID		set alias-id
+
+-d			debug on
+-e			add errors-to
+-f sender		set sender
+-h hostname		hostname of this machine (if you want it to be generic)
+-i			always ignore reply-to and add mine
+-j			use majordomo style file layout
+
+-l listname		mail-list-name
+-m sendmail_opt		set additional option to sendmail
+-n news_from		remove incoming mail's news-to-mail style header
+-o 			use owner-, instead of -request
+-q			add x-sequence
+-r reply-to		set reply-to addr
+-s			do smart about add-me mail
+-t			terse processing (no Subject alias)
+-u userid (*)		set mailer user id
+-v seqfile		add sequence
+
+-x			write INDEX file
+
+
+-A accept-addr-file	set accept addr file
+-B bracedef		set subject tag open/close
+-C archive-path		set archive path
+-D debug		forward debug output to console.
+
+-F footer		include footer file after mail body
+
+-H header		include header file before mail body
+-I seqfile		add sequence
+
+-L recipient		Recipient file
+-M mailing-list-name	same as: -e -a NAME -r NAME -v NAME -A NAME -l NAME
+-N mailing-list-name	same as: -e -a NAME -v NAME -A NAME -l NAME
+-P precedence		set precedence: header
+
+-R 			zap recieved-by header
+
+-U userid (*)		set archive user id
+-V 			print version
+
+-X			remove version header
+-Y archive_path		set archive base path
+-Z index_file		set index file name

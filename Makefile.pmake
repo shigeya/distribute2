@@ -1,4 +1,4 @@
-# $Id$
+# Makefile.pmake,v 1.1.1.1 1992/07/10 08:04:44 shigeya Exp
 
 PROG=	distribute
 SRCS=	distribute.c header.c

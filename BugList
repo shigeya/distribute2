@@ -1,0 +1,6 @@
+Sat Feb 12 11:28:30 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* -A オプションにまだバグがある。まだ使わない方が良い。従って説明
+	  されていない。
+
+BugList,v 1.3 1994/08/05 11:49:22 shigeya Exp

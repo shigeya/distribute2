@@ -1,0 +1,24 @@
+Fri May  6 10:11:47 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* 同じサイトの複数のメーリングリストの alias を subject から削除す
+	  る機能をつける。
+
+Mon Feb  7 18:09:31 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* majordomo の index/get 機能に対応する
+
+Tue Feb  1 12:46:34 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* umask
+
+	* article compress
+
+	* index/rindex を駆逐する
+
+Tue Dec 21 08:49:11 1993  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* HML対策 (# help など)
+
+	* 配布先リストを 投稿者 access listとして使う機能
+
+ToDo,v 1.6 1994/08/05 11:49:27 shigeya Exp

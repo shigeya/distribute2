@@ -1,3 +1,179 @@
+Fri Aug  5 21:01:11 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* patchlevel=19 FIX
+
+	* Bug fix on compiled without -DISSUE/-DSUBJALIAS, non-sequence no.
+	  <hiro@is.s.u-tokyo.ac.jp>
+
+	* Fix on archive.c <caoru@sgi.co.jp> really big bug!
+
+	* EWS4800 support patch <y-koga@ccs.mt.nec.co.jp>
+
+Sat Feb 19 00:48:34 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* memory.h プロトタイプ変更。str{sp}append を追加
+
+	* header.c: malloc -> xmalloc
+
+	* -m オプションを複数指定出来るように変更。
+
+	* strspappend/strappend を追加。
+
+Mon Feb 14 14:59:46 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* patchlevel=18 FIX
+
+	* -O があっても動くのを確認したので ドキュメントをそれに合わせて修
+	  正。
+
+	* jcode.pl を tmpl2c.pl に含めた。
+
+	* write_index() で、ローカル変数のつかい方が正しくなかったので修正
+	  した。これで、SunOS で -O オプションつきでも平気なはずである。
+
+	* reject したときにも historyを書きにいっていたので、それをやめる
+	  ようにした。
+
+Sun Feb 13 21:33:52 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* patchlevel=17 FIX
+
+	* 一部のテスト関連のファイルを削除
+
+	* parserecipfile.c -> recipfile.c, parserecipfile.h -> recipfile.h
+
+	* MSCオプションつきでもちゃんとアーカイブ出来るようにする。
+
+	* adddefaultpath にオプション追加。リスト名をlower caseに。
+
+	* majordomo オプション付きのときに、recipient filenameのメーリング
+	  リスト名部分のみ lowercase にコンバートするようにした。
+
+	* INSTALL.JP追加
+
+Thu Feb 10 14:39:46 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* patchlevel=16 FIX
+
+	* lint 対応
+
+Tue Feb  1 13:05:49 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* patchlevel=15 FIX
+
+	* bugfix: forget to return headc in parse_and_clean_header
+
+	* Sunでコンパイルできなかったので、その部分を修正。
+
+	* patchlevel=14 FIX
+
+	* archive で -N をオプションとして取れなかったのを修正。
+
+	* add x-sequence の追加 (-q) 
+
+	* terse optionの追加 (-t) -> subject に mailing list nameを入れな
+	  くなる。
+
+	* patchlevel=13 FIX
+
+	* checksum 計算のバグを修正
+
+	* History のフォーマットの変更(sumを10桁に)
+
+	* Write Index option (-x) を追加
+
+	* pathutil.[ch] history.[ch] の追加
+
+	* support.c -> strlib.c/strlib.h
+
+	* -Z オプションで、インデックスファイルのファイル名を指定できるよ
+	  うにした(default: INDEX)
+
+	* -Y オプションで、アーカイブディレクトリのベースを指定するように
+	  した。
+
+	* Archive 機能をほぼ実現。
+
+Sun Jan 23 21:09:27 1994  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* Archive 機能の一部実現。
+
+	* memory, logging 関連の関数を別ファイルにした。
+
+Wed Dec 22 01:11:18 1993  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* Change from masa-k for NEWSOS support
+
+	* MSC オプションで一部間違いがあったので fix した。
+
+Tue Dec 21 06:31:46 1993  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* patchlevel=12 FIX
+
+	* Makefileのバグフィックス(最近足したソースがHDRS/SRCSに反映されて
+	  いなかった)
+
+	* メッセージの %M を maintainer@host に変更した。さらに、
+	  originator に返送されるときに、maintainerにCc:されるように修正。
+
+	* ログに出力されるメッセージを少し増やした。
+
+	* SunOS4.1.3 でコンパイルするのに少々問題あったので修正
+
+	* maintainer のドメイン名追加処理を修正
+
+	* invalid message の送り先が originator だったので、maintainerに変
+	  更
+
+	* -n オプションを追加。 -n news@foretune.co.jp の形式で、
+	  originator となるアドレスを指定できる。指定したアドレスと異なる
+	  場合は、maintainer向けにメールが送られる。このオプションを指定し、
+	  かつ、アドレスがマッチした場合、先行するメールヘッダが削除された
+	  うえで、通常の処理が続行する。
+
+	* MAXHEADERLINEのかわりに 100 を使っているところがあるので修正。
+
+	* patchlevel=11 FIX
+
+	* Return-Path:など削除すべきヘッダが複数あった時にちゃんと削除され
+	  ていなかった。
+
+	* ソースを ちょっとおそうじした。
+
+	* badheader/administrative で JP conversion をいれてなかったのでい
+	  れた。
+
+	* install時にinstall -c を使うように変更(こばちゃんの指摘)
+
+Mon Dec 20 00:24:16 1993  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* patchlevel=10 FIX
+
+	* parserecipfileから行の正規化ルーチンを外に取り出し、単独利用可能
+	  とした。
+
+	* ls_appendcharの追加
+
+	* parserecipfileの引数追加(エラー時処理方法指定)
+
+	* 各種エラーリプライの作成を行なうパッケージを追加。originatorによ
+	  りメッセージの種類を変更可能とした。(日本語／英語など)
+
+	* Accept fileが指定されている場合、From/Senderなどから分かる
+	  originator をみて、acceptfileに指定されていないユーザからのメッ
+	  セージをリジェクトするようにした。
+
+	* -A option を -X に変更。 -A で accept file の指定を可能に。
+
+Sun Dec 19 10:35:58 1993  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
+
+	* patchlevel=9 FIX
+
+	* main を縮小して、機能分化した(まだ、見通しが悪いけど、前よりマシ
+	  か)
+
+	* incorporate demizu error patch
+
 Tue Nov  2 15:46:39 1993  Shigeya Suzuki  (shigeya at hook.foretune.co.jp)
 
 	* Patchlevel=8 FIX
@@ -182,4 +358,4 @@ Thu Oct  8 13:20:48 1992  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* Added Locking for sequence file
 
-$Id$
+ChangeLog,v 1.35 1994/08/05 12:04:43 shigeya Exp

@@ -1,4 +1,4 @@
-/* $Id$
+/* longstr.h,v 1.4 1994/02/13 13:46:45 shigeya Exp
  *
  *	Long string handler --	Definitions
  *
@@ -8,8 +8,8 @@
 #ifndef __LONGSTR_H__
 #define	__LONGSTR_H__
 
-#ifndef __CDEFS_H__
-#include "cdefs.h"
+#ifndef __P
+# include "cdefs.h"
 #endif
 
 struct longstr {
@@ -25,7 +25,8 @@ struct longstr {
 void ls_init __P((struct longstr*));
 void ls_reset __P((struct longstr*));
 void ls_grow __P((struct longstr*, size_t));
-void ls_append __P((struct longstr*, void*, size_t));
+void ls_append __P((struct longstr*, char*, size_t));
 void ls_appendstr __P((struct longstr*, char*));
+void ls_appendchar __P((struct longstr*, int));
 
 #endif

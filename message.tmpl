@@ -1,0 +1,157 @@
+# message.tmpl,v 1.3 1993/12/21 14:28:49 shigeya Exp
+#
+# bounce message file for distribute
+# Copyright(c)1993 Shigeya Suzuki
+#
+
+############################################################# badheader
+
+@ badheader_us
+To: %M
+From: The Distribute Mailinglist Handler <%M>
+Subject: Distribute error: Bad Header: %1
+
+Following article for mailing list "%L" has been rejected
+due to header error "%1."  Please check header or software.
+
+distribute -- Your mailing list handler.
+
+---- unsent message header follows ----
+@
+
+@ badheader_jp
+To: %M
+From: The Distribute Mailinglist Handler <%M>
+Subject: Distribute error: Bad Header: %1
+
+以下のメーリングリスト "%L" 向けの記事は、メールヘッダになんらかの問題が
+あるため、メーリングリストに送られませんでした。distributeの設定または
+ヘッダをご確認願います。
+
+"%L" 管理人代理 distribute
+
+---- unsent message header follows ----
+@
+
+& badheader
+jp	badheader_jp	euc_to_iso2022jp
+*	badheader_us	none
+&
+
+############################################################# administrative
+
+@ administrative_us
+To: %M
+From: The Distribute Mailinglist Handler <%M>
+Subject: Distribute: got administrative message
+
+Following article for mailing list "%L" has been rejected
+because it seems to be a add me/remove me letter.
+
+Please check it.
+
+distribute -- Your mailing list handler.
+
+---- unsent message header follows ----
+@
+
+@ administrative_jp
+To: %M
+From: The Distribute Mailinglist Handler <%M>
+Subject: Distribute: got administrative message
+
+以下の "%L"メーリングリスト向けメッセージは、"add" "remove"
+などといったメンテナンス用キーワードを含んでいるため、
+メーリングリストに送られませんでした。
+
+内容をご確認願います。
+
+"%L" 管理人代理 distribute
+
+---- unsent message header follows ----
+@
+
+& administrative
+jp	administrative_jp	euc_to_iso2022jp
+*	administrative_us	none
+&
+
+
+################################################################# notallowed
+
+@ notallowed_us
+To: %O
+Cc: %M
+From: The "%L" mailing list maintainer <%M>
+Subject: Submission to "%L" rejected
+
+You can't send message to this mailing list. This mailing list is
+configured for message distribution only.
+
+Please send request to <%M> instead.
+
+distribute -- Your mailing list handler.
+
+---- unsent message header follows ----
+@
+
+@ notallowed_jp
+To: %O
+Cc: %M
+From: The "%L" mailing list maintainer <%M>
+Subject: Submission to "%L" rejected
+
+こちらはメーリングリストハンドラ distribute です。
+
+以下のメッセージを受け取りましたが、メーリングリスト "%L" は、
+配布専用のメーリングリストです。このメーリングリストへメッセージを送る
+事はできません。
+
+なんらかのリクエストがある場合は、<%M> 宛に
+お送りくださいますようお願いいたします。
+
+"%L" 管理人代理 distribute
+
+---- unsent message header follows ----
+@
+
+& notallowed
+jp	notallowed_jp	euc_to_iso2022jp
+*	notallowed_us	none
+&
+
+
+################################################################# notanews
+
+@ notanews_us
+To: %M
+From: The Distribute Mailinglist Handler <%M>
+Subject: Distribute error: Not a news article
+
+Following article for mailing list "%L" has been rejected
+because it is not news article, and this mailing list is
+configured for news article distribution.
+
+distribute -- Your mailing list handler.
+
+---- unsent message header follows ----
+@
+
+@ notanews_jp
+To: %M
+From: The Distribute Mailinglist Handler <%M>
+Subject: Distribute error: Not a news article
+
+以下のメーリングリスト "%L" 向けの記事は、メーリングリストがNetNews記
+事の配布用に設定されているのにもかかわらず、Newsの記事でなかったため配
+布されませんでした。
+
+"%L" 管理人代理 distribute
+
+---- unsent message header follows ----
+@
+
+& notanews
+jp	notanews_jp	euc_to_iso2022jp
+*	notanews_us	none
+&

@@ -1,4 +1,4 @@
-/* $Id$ */
+/* header.c,v 1.7 1994/08/05 11:49:30 shigeya Exp */
 
 /* Routines to read & munge mail & news headers.
 
@@ -39,7 +39,8 @@
 #include "util.h"
 #include "config.h"
 
-extern char * malloc();
+#include "memory.h"
+
 extern logandexit();
 
 /* Run through a message grabbing all of the header lines.  Stop at the
@@ -192,14 +193,7 @@ FILE * fp;	/* File pointer to the start of the message. */
 
 				/* Grab some space for it.
 				*/
-				if ((headv[head_no]
-					= malloc((unsigned)head_len+1))
-					== (char *)NULL)
-				{
-					/* No more space.
-					*/
-				    logandexit(EX_UNAVAILABLE, "insufficient memory in head_parse");
-				}
+				headv[head_no] = xmalloc((unsigned)head_len+1);
 
 				/* Copy the header line into this space.
 				*/
@@ -248,13 +242,7 @@ FILE * fp;	/* File pointer to the start of the message. */
 
 		/* Grab some space for it.
 		*/
-		if ((headv[head_no] = malloc((unsigned)head_len+1))
-			== (char *)NULL)
-		{
-			/* No more space.
-			*/
-		    logandexit(EX_UNAVAILABLE, "insufficient memory in head_parse");
-		}
+		headv[head_no] = xmalloc((unsigned)head_len+1);
 
 		/* Copy the header line into this space.
 		*/
@@ -542,4 +530,19 @@ char * header;	/* Header to delete. */
 	/* We did not find it.
 	*/
 	return ((char *)NULL);
+}
+
+
+/* free whole header vector
+ */
+void head_free(headc, headv)
+    register int headc;
+    register char ** headv;
+{
+    register int i;
+
+    for(i=0; i<headc; i++) {
+	free(headv[i]);
+	headv[i] = NULL;
+    }
 }
