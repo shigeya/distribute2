@@ -1,5 +1,18 @@
 Tue Apr 20 18:24:52 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
+	* Make dependency を正しくした。
+
+	* MANIFESTをcvs的に追加
+
+	* -V option 追加（バージョン表示と、各種デフォルト表示）
+
+	* DEF_ALIAS_CHAR_OPTION を導入。OPEN/CLOSE別々ではなく、option形式
+	  で設定可能に。OPEN/CLOSEによる設定は廃止。
+
+	* DEF_DOMAINNAME を再導入
+
+	* patchlevel.h を追加
+
 	* Makefile を変更 DEF_DOMAINNAMEに関する記述を削除。install時の
 	  owner group をmakefileで指定。mode=4755
 

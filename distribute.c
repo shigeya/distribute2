@@ -8,6 +8,8 @@
 #include <sys/file.h>
 #include <sys/param.h>
 
+#include "patchlevel.h"		/* version identifier */
+
 /*
  * Send a mail message to users on a distribution list.  The message
  * header is altered mainly to allow error messages to be returned to
@@ -33,6 +35,10 @@
  *	Hiroaki Takada		<hiro@is.s.u-tokyo.ac.jp>
  */
 
+char *rcsID = "$Id$";
+char *versionID = VERSION;
+int patchlevel = PATCHLEVEL;
+
 /* Default configuration check and define if not defined
  */
 #ifndef DEF_SEQ_PATH
@@ -54,11 +60,9 @@
 #ifndef DEF_OPENALIAS_CHAR
 # define DEF_OPENALIAS_CHAR	'('
 #endif
-
 #ifndef DEF_CLOSEALIAS_CHAR
 # define DEF_CLOSEALIAS_CHAR	')'
 #endif
-
 
 extern	int head_parse();
 extern	void head_norm();
@@ -86,7 +90,9 @@ char *recipient_path = DEF_RECIPIENT_PATH;
 char *seq_suffix = DEF_SEQ_SUFFIX;
 char *recipient_suffix = DEF_RECIPIENT_SUFFIX;
 
+#ifndef DEF_DOMAINNAME
 char myhostname[MAXHOSTNAMELEN];
+#endif
 
 char openaliaschar = DEF_OPENALIAS_CHAR;
 char closealiaschar = DEF_CLOSEALIAS_CHAR;
@@ -95,7 +101,7 @@ char closealiaschar = DEF_CLOSEALIAS_CHAR;
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
 
 
-#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:Rsdei"
+#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:RsdeiV"
 
 void
 usage() {
@@ -110,10 +116,39 @@ usage() {
     fprintf(stderr, " [-a aliasid] [-B brace_lr]");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "	[-Rsdei] [-m sendmail-flags]\n");
+    fprintf(stderr, "	[-RsdeiV] [-m sendmail-flags]\n");
     fprintf(stderr, "	{-L recip-addr-file | recip-addr ...}\n");
     exit(EX_USAGE);
 }
+
+printversion()
+{
+    fprintf(stderr, "distribute version %s ", versionID);
+#ifdef RELEASESTATE
+    fprintf(stderr, "(%s) ", RELEASESTATE);
+#endif
+    fprintf(stderr, "patchlevel %d\n", patchlevel);
+    fprintf(stderr, "%s\n", rcsID);
+    fprintf(stderr, "\nOptions:");
+#ifdef ISSUEFILE
+    fprintf(stderr, " [ISSUEFILE]");
+#endif
+#ifdef SUBJALIAS
+    fprintf(stderr, " [SUBJALIAS]");
+#endif
+    fprintf(stderr, "\nDefaults:\n");
+#ifdef DEF_ALIAS_CHAR_OPTION
+    fprintf(stderr, "\tAlias option: -B%s\n", DEF_ALIAS_CHAR_OPTION);
+#endif
+#ifdef DEF_DOMAINNAME
+    fprintf(stderr, "\tDefault Domain Name: %s\n", DEF_DOMAINNAME);
+#endif
+    fprintf(stderr, "\tRecipient file default path: %s\n", DEF_RECIPIENT_PATH);
+    fprintf(stderr, "\tSequence file default path:  %s\n", DEF_SEQ_PATH);
+
+    exit(EX_USAGE);
+}
+
 
 /*
  * Check to see if a message appears to be an administrative one,
@@ -313,6 +348,60 @@ adddefaultpath(defpath, name, suffix)
     return buf;
 }
 
+/* getaliaschar parses options of alias chars and returns
+ * open and close chars
+ */
+int
+getaliaschar(opench, closech, opt)
+    char *opench, *closech;
+    char *opt;
+{
+    int opterror = 0;
+
+    switch (strlen(opt)) {
+    case 1:	/* -B <typechar> */
+	switch (opt[0]) {
+	case 'c': case 'C': /* curly brace */
+	    *opench = '{'; /* } { */
+	    *closech = '}'; 
+	    break;
+	    
+	case 'b': case 'B': /* bracket */
+	    *opench = '[';
+	    *closech = ']';
+	    break;
+	    
+	case 'a': case 'A': /* angle bracket */
+	    *opench = '<';
+	    *closech = '>';
+	    break;
+	    
+	case 'p': case 'P': /* paren (default)*/
+	default:
+	    *opench = '(';
+	    *closech = ')';
+	    break;
+	}
+	break;
+	
+    case 2:	/* -B <opench><closech> */
+	if (opt[0] != opt[1]) {
+	    *opench = opt[0];
+	    *closech = opt[1];
+	}
+	else {
+	    opterror++;
+	}
+	break;
+	
+    default:
+	opterror++;
+	break;
+    }
+
+    return opterror == 0;
+}
+
 
 /* Main Entry
  */
@@ -351,6 +440,7 @@ char ** argv;
 	int forcereplyto = 0;	/* ignore reply to */
 	char *originatorreplyto = NULL;
 	int c;
+	char openc, closec;
 	extern char *optarg;
 	extern int optind;
 	int optionerror = 0;
@@ -358,8 +448,24 @@ char ** argv;
 	chdir("/tmp");
 
 	/* setup default */
+#ifdef DEF_DOMAINNAME
+	host = DEF_DOMAINNAME;
+#else
 	gethostname(myhostname, sizeof(myhostname));
 	host = myhostname;
+#endif
+
+#ifdef DEF_ALIAS_CHAR_OPTION
+	if (getaliaschar(&openc, &closec, DEF_ALIAS_CHAR_OPTION)) {
+	    openaliaschar = openc;
+	    closealiaschar = closec;
+	}
+	else {
+	    fprintf(stderr, "Error in compile-in default of -B%s\n",
+		    DEF_ALIAS_CHAR_OPTION);
+	    exit(EX_NOINPUT);
+	}
+#endif
 
 	progname = argv[0];
 	while ((c = getopt(argc, argv, GETOPT_PATTERN)) != EOF) {
@@ -386,45 +492,12 @@ char ** argv;
 		    break;
 
 		case 'B':	/* brace def */
-		    switch (strlen(optarg)) {
-		    case 1:	/* -B <typechar> */
-			switch (optarg[0]) {
-			case 'c': case 'C': /* curly brace */
-			    openaliaschar = '{'; /* } { */
-			    closealiaschar = '}'; 
-			    break;
-
-			case 'b': case 'B': /* bracket */
-			    openaliaschar = '[';
-			    closealiaschar = ']';
-			    break;
-			    
-			case 'a': case 'A': /* angle bracket */
-			    openaliaschar = '<';
-			    closealiaschar = '>';
-			    break;
-
-			case 'p': case 'P': /* paren (default)*/
-		    	default:
-			    openaliaschar = '(';
-			    closealiaschar = ')';
-			    break;
-		    	}
-			break;
-
-		    case 2:	/* -B <openchar><closechar> */
-			if (optarg[0] != optarg[1]) {
-			    openaliaschar = optarg[0];
-			    closealiaschar = optarg[1];
-			}
-			else {
-			    optionerror++;
-			}
-			break;
-
-		    default:
+		    if (getaliaschar(&openc, &closec, optarg)) {
+			openaliaschar = openc;
+			closealiaschar = closec;
+		    }
+		    else {
 			optionerror++;
-			break;
 		    }
 		    break;
 
@@ -488,6 +561,10 @@ char ** argv;
 		case 'L':	/* recip-addr-file */
 			recipfile = adddefaultpath(recipient_path, optarg, "");
 			break;
+
+		case 'V':
+		    printversion();
+		    break;	/* notreached */
 
 		default:
 		case '?':

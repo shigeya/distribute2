@@ -19,6 +19,12 @@ OPTIONS= -DISSUE -DSUBJALIAS
 #
 # DEFAULT parameters -- YOU SHOULD EDIT THESE
 #
+# DEF_DOMAINNAME	-- default domain name attached to list-name
+# [default: undef]	   like MailingListName@My.Domain.Name
+#			   Define to your domain name, or undefine it.
+#			   If undefined, hostname by gethostname or
+#			   hostname given by -h will be attached.
+#
 # DEF_SEQ_PATH		-- default path to directory which holds
 # [default:			   sequence number files.
 #   /usr/lib/mail-list]
@@ -33,11 +39,16 @@ OPTIONS= -DISSUE -DSUBJALIAS
 # DEF_RECIPIENT_SUFFIX	-- default suffix for recipient list files.
 # [default: .rec]
 #
+# DEF_ALIAS_CHAR_OPTION	-- Define alias char by -B option value.
+# [default: NONE]	   (ex: DEF_ALIAS_CHAR_OPTION=\"b\" for brace)
+#			   "b" for brace, "c" for curly brace, "p" for paren
+#			   or "<>" to specify both open/close char.
+#
 
-# EXAMPLE:
-## DEFAULTCONFIG=\
-##	-DDEF_SEQ_PATH=\"/proj/proj.mail/seq\" \
-##	-DDEF_RECIPIENT_PATH=\"/proj/proj.mail\"
+# CONFIG EXAMPLE:
+##DEFAULTCONFIG=\
+##	-DDEF_DOMAINNAME=\"foretune.co.jp\" \
+##	-DDEF_ALIAS_CHAR_OPTION=\"b\"
 
 #
 DESTDIR=
@@ -84,3 +95,7 @@ depend:
 
 kit:
 	shar ${KITFILES} >distribute.kit
+
+###
+distribute.o:	distribute.c Makefile patchlevel.h 
+header.o:	header.c

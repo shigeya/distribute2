@@ -6,6 +6,12 @@ Tue Apr 20 21:37:34 1993		Shigeya Suzuki
 	Changed Makefile to set owner/group/mode. current mode using
 	is 4755. Please be careful.
 
+	DEF_DOMAINNAME added. It's compile-in default value for -h option.
+	This will reduce options in command line.
+
+	DEF_ALIAS_CHAR_OPTION added: you can specify default value for
+	-B option by this.
+
 ** Reply-to Handling
 
 	Now, -r <reply-to> option only add Reply-To header if no
