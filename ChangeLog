@@ -1,3 +1,43 @@
+Wed Mar 31 17:06:44 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* Distribution に Makefile.pmake を追加 (for BSD/386)
+
+	* 高田さんからのフィードバックを元にリリースキット作成
+
+Mon Dec 28 11:56:44 JST 1992  Hiroaki Takada (hiro@is.s.u-tokyo.ac.jp)
+
+	* cmdbuf の長さを 10KByte にする。たぶん越えないとは思うが、オー
+	バーのチェックはしていないので、注意が必要。
+
+Thu Dec 17 17:23:05 JST 1992  Hiroaki Takada (hiro@is.s.u-tokyo.ac.jp)
+
+	* -r オプションが無い場合は、Reply-To: を元のメイルのままにす
+	る。独自の Reply-To: をつける方法は、メイリングリストにはいっ
+	ていない人からメイルが来る場合には、単にリプライした場合にメイ
+	ルの差し出し人に送られないため、問題があると思われる。
+
+	* Errors-To: フィールドに入れるアドレスを、list-name-request 
+	にする (マニュアルにあわせた)。
+
+	* 'L' オプションを追加。-L <ファイル名> で、<ファイル名> で指
+	定されたファイルに書かれている内容を、メイリングリストの宛先と
+	して扱う。これにより、SMTP の expn を使っても、メイリングリス
+	トの内容を見えなくすることができる。
+
+	* issuefile がアクセスできなかった時に、発信者にエラーメイルが
+	返るように改造。また、ヘッダがおかしい場合や、-s オプションが
+	ついていて管理目的メイルと思われる場合には、シーケンス番号を振
+	らないようにする。
+
+	* -DISSUE -DSUBJALIAS でない時に Subject がなくなるバグをフィッ
+	クス。
+
+	* 最初にあるコメントに "This program should be setuid to one
+	of sendmail's trusted users" とあったが、-I オプションをサポー
+	トすると、これは危ない。
+
+	* マニュアルを修正。
+
 Thu Oct  8 13:20:48 1992  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* man page update
@@ -13,3 +53,4 @@ Thu Oct  8 13:20:48 1992  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* Added Locking for sequence file
 
+$Id$

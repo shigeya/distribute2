@@ -5,6 +5,7 @@
 # Some hacks here courtesy of Brent Chapman, brent@napa.Telebit.COM
 #
 # Modified by: shin@u-tokyo.ac.jp, toku@dit.co.jp, shigeya@foretune.co.jp
+#		and hiro@is.s.u-tokyo.ac.jp
 #
 # Available options:
 #	-DISSUE		include X-Sequence sequence numbering
@@ -23,7 +24,7 @@ MANSEC=	1
 # C source files
 SRCS=		distribute.c header.c
 HDRS=		util.h
-MISCSRC=	ChangeLog README distribute.1 Makefile
+MISCSRC=	ChangeLog README distribute.1 Makefile Makefile.pmake
 KITFILES=	${SRCS} ${HDRS} ${MISCSRC}
 
 all: distribute
@@ -32,7 +33,7 @@ distribute: distribute.o header.o
 	${CC} ${CFLAGS} -o distribute distribute.o header.o
 
 install: distribute distribute.1
-	install -s -o bin -g bin -m 755 distribute2 ${DESTDIR}${WHERE}
+	install -s -o bin -g bin -m 755 distribute ${DESTDIR}${WHERE}
 	install -o bin -g bin -m 444 distribute.1 \
 	    ${DESTDIR}${MANDIR}/man${MANSEC}/distribute.${MANSEC}
 

@@ -11,29 +11,34 @@
  * header is altered mainly to allow error messages to be returned to
  * the list maintainer at the list host.
  *
- * This program should be setuid to one of sendmail's trusted users.
+ * Usage:
  *
- * Usage: put an entry into /usr/lib/aliases of the following form:
+ * Put an entry into /etc/aliases of the following form:
  *
- * list-name: "|/usr/local/bin/distribute options user1 user2 ..."
+ *	list-name: :include:/etc/mail-list/list-name-dist
  *
+ * The list-name-dist file should be as the following:
+ *
+ *	| /usr/local/bin/distribute options user1 user2 ...
  */
 
-/* Modified by:
+/*
+ * Modified by:
  *
  *	Shin Yoshimura		<shin@wide.ad.jp>
  *	Yoshitaka Tokugawa	<toku@dit.co.jp>
  *	Shigeya Suzuki		<shigeya@foretune.co.jp>
+ *	Hiroaki Takada		<hiro@is.s.u-tokyo.ac.jp>
  */
 
-
-char *index();
+#define	MAXCMD	10240
 
 extern	int head_parse();
 extern	void head_norm();
 extern	char * head_find();
 extern	char * head_delete();
 extern	char * tmpnam();
+extern	char * index();
 char *progname;
 
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
@@ -51,7 +56,8 @@ usage() {
 	fprintf(stderr, " [ -a aliasid ]");
 #endif
 	fprintf(stderr, "\n");
-	fprintf(stderr, "    [ -Rsde ] [ -m sendmail-flags ] recip-addr ...\n");
+	fprintf(stderr, "    [ -Rsde ] [ -m sendmail-flags ]\n");
+	fprintf(stderr, "    [ -L recip-addr-file ] recip-addr ...\n");
 	exit(EX_USAGE);
 }
 
@@ -118,6 +124,7 @@ char ** argv;
 	register int i;
 	register FILE *pipe = NULL, *headf = NULL, *footf = NULL;
 	FILE *noisef = NULL;
+	FILE *recipf = NULL;
 	char *headv[100];	/* Header vector */
 	char *list = NULL;	/* Name of the list */
 	char *host = NULL;	/* Name of the list's host */
@@ -134,7 +141,7 @@ char ** argv;
 	int badhdr = 0;		/* something is fishy about the header */
 	int wasadmin = 0;	/* was a noise message */
 	char buf[1024];
-	char cmdbuf[1024];
+	char cmdbuf[MAXCMD];
 	int debug = 0;
 	int zaprecv = 0;	/* zap received lines */
 	int lessnoise = 0;	/* run ``please add/delete me'' filter */
@@ -146,7 +153,7 @@ char ** argv;
 	chdir("/tmp");
 
 	progname = argv[0];
-	while ((c = getopt(argc, argv, "h:f:Rsel:H:dF:m:v:I:r:a:")) != EOF) {
+	while ((c = getopt(argc, argv, "h:f:Rsel:H:dF:m:v:I:r:a:L:")) != EOF) {
 		switch(c) {
 		case 'h':	/* hostname */
 			host = optarg;
@@ -207,6 +214,13 @@ char ** argv;
 			aliasid = optarg;
 			break;
 
+		case 'L':	/* recip-addr-file */
+			if ((recipf = fopen(optarg, "r")) == NULL) {
+				fprintf(stderr, "can't open receipt address file '%s'\n", optarg);
+				exit(EX_NOINPUT);
+			}
+			break;
+
 		default:
 		case '?':
 			usage();
@@ -243,10 +257,10 @@ char ** argv;
 	 *	To:			leave alone; shows the list name
 	 *	Cc:			leave alone
 	 * 	Date:			leave alone
-	 *	Reply-To:		delete or add our own
+	 *	Reply-To:		delete and add our own (if "-r")
 	 *	Message-Id:		leave alone
 	 *	Return-Receipt-To:	delete to avoid skillions of receipts
-	 *	Errors-To:		delete (add our own?)
+	 *	Errors-To:		delete (add our own if "-e")
 	 *	Return-Path:		delete (not needed?)
 	 *	Received:		optional; can generate spurious
 	 *				    bounces if sendmail sees too many,
@@ -259,6 +273,7 @@ char ** argv;
 	 *				    own), but not now.  The handling
 	 *				    of Resent-* fields needs to be
 	 *				    the topic of a new RFC...
+	 *	X-Sequence:		delete and add our own
 	 */
 
 	/* 
@@ -300,8 +315,10 @@ char ** argv;
 	/*
 	 * Delete the Reply-To: header
 	 */
-	if ((header = head_delete(headc, headv, "Reply-To:")) != NULL)
-		free(header);
+	if (replyto != NULL) {
+		if ((header = head_delete(headc, headv, "Reply-To:")) != NULL)
+			free(header);
+	}
 
 	/*
 	 * Parse Subject
@@ -336,6 +353,18 @@ char ** argv;
 	else {
 		strcat(cmdbuf, list);
 		strcat(cmdbuf, "-request");
+	}
+	if (recipf != NULL) {
+		while (fgets(buf, sizeof buf, recipf) != NULL) {
+			register char *p;
+
+			if ((p = index(buf, '\n')) != NULL)
+				*p = '\0';
+			if (buf[0] == '\0' || buf[0] == '#')
+				continue;
+			strcat(cmdbuf, " ");
+			strcat(cmdbuf, buf);
+		}
 	}
 	for (i = optind ; i < argc ; i++)
 	{
@@ -375,6 +404,13 @@ char ** argv;
 		}
 	}
 
+#ifdef ISSUE
+	if (!(badhdr || wasadmin) && (issuefile != NULL)) {
+		int getnextissue();
+		issuenum = getnextissue(issuefile);
+	}
+#endif
+
 	/*
 	 * Start this command running.
 	 */
@@ -394,8 +430,9 @@ char ** argv;
 	 * Give the command its input.
 	 */
 
-	/* Put out the headers.
-	*/
+	/*
+	 * Put out the headers.
+	 */
 	for (i=0; i<headc; i++) {
 		if (headv[i] != NULL) {
 			fputs(headv[i], pipe);
@@ -404,23 +441,17 @@ char ** argv;
 	}
 
 	/*
-	 * Add a new Sender: field as requested earlier.  Also add
-	 * a blank line separating the header lines from the body of
-	 * the message.
+	 * Add a new Reply-To.
 	 */
 	if (replyto != NULL){
 		if (index(replyto,'@') == NULL)
 			fprintf(pipe, "Reply-To: %s@%s\n", replyto, host);
 		else
 			fprintf(pipe, "Reply-To: %s\n", replyto, host);
-		}
-	else
-		fprintf(pipe, "Reply-To: %s@%s\n", list, host);
+	}
 		
 #ifdef ISSUE
-	if (issuefile != NULL) {
-		int getnextissue();
-		issuenum = getnextissue(issuefile);
+	if (issuenum) {
 #ifdef SUBJALIAS
 		if (aliasid != NULL)
 			fprintf(pipe, "X-Sequence: %s %d\n",aliasid,issuenum);
@@ -459,19 +490,28 @@ char ** argv;
 			} else
 				p++;
 		}
-		fprintf(pipe, "Subject: (%s %d)%s\n",aliasid,issuenum,subject);
+		if (issuenum)
+			fprintf(pipe, "Subject: (%s %d)%s\n",aliasid,issuenum,subject);
+		else
+			fprintf(pipe, "Subject: (%s)%s\n",aliasid,subject);
 	} else
-		fprintf(pipe, "Subject:%s\n",subject);
 #endif
+		fprintf(pipe, "Subject:%s\n",subject);
 
 	if (errorsto)
-		fprintf(pipe, "Errors-To: owner-%s@%s\n", list, host);
+		fprintf(pipe, "Errors-To: %s-request@%s\n", list, host);
+
+	/*
+	 * Add a new Sender: field as requested earlier.  Also add
+	 * a blank line separating the header lines from the body of
+	 * the message.
+	 */
 	if (senderaddr != NULL){
 		if (index(senderaddr,'@') == NULL)
 			fprintf(pipe, "Sender: %s@%s\n\n", senderaddr, host);
 		else
 			fprintf(pipe, "Sender: %s\n\n", senderaddr, host);
-		}
+	}
 	else
 		fprintf(pipe, "Sender: %s-request@%s\n\n", list, host);
 
@@ -479,9 +519,9 @@ char ** argv;
 	 * If something was wrong, tell the list maintainer.
 	 */
 	if (badhdr)
-		fprintf(pipe, "WARNING: unsent message: header problem\n");
+		fprintf(pipe, "WARNING: unsent message: header problem.\n\n");
 	if (wasadmin)
-		fprintf(pipe, "WARNING: unsent message: was administrivia\n");
+		fprintf(pipe, "WARNING: unsent message: was administrivia.\n\n");
 
 	/*
 	 * Dump the message thru the pipe.  We push out the header, then
@@ -517,7 +557,7 @@ getnextissue(filename)
 	if ((fd = open(filename,O_RDWR)) < 0) {
 		if ((fd = creat(filename, 0664)) < 0) {
 			perror("distribute: can't create issue file");
-			exit(0);
+			exit(EX_NOINPUT);
 		}
 		write(fd,"1\n",2);
 		close(fd);

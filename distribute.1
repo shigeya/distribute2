@@ -1,5 +1,6 @@
 .\" $Id$
-.TH DISTRIBUTE 1  "26 November 1991"
+.\" .TH DISTRIBUTE 1  "26 November 1991"
+.TH DISTRIBUTE 1  "31 March 1993"
 .SH NAME
 distribute \- reforward incoming messages to a mailing list
 .SH SYNOPSIS
@@ -38,6 +39,10 @@ distribute \- reforward incoming messages to a mailing list
 [
 .B \-Rsde
 ]
+[
+.B \-L
+.I recip-addr-file
+]
 .I recip-1 recip-2 ...
 .IX  "distribute command"  ""  "\fLdistribute\fP \(em reforward incoming messages to a mailing list"
 .SH DESCRIPTION
@@ -50,7 +55,7 @@ It is primarily useful for those who run large mailing lists.
 .PP
 .I Distribute
 modifies the header as follows.  Any From_, Sender:
-Return-Receipt-To:, Errors-To:, Reply-To:, or Return-Path: header lines
+Return-Receipt-To:, Errors-To:, Return-Path:, or X-Sequence: header lines
 are deleted.  A new Sender: line is added.  The address given on the
 new Sender: line is of the form
 .I sender-addr@list-host
@@ -70,7 +75,8 @@ the address that appears on the Sender: line.
 .PP
 If the
 .B \-r
-option is used, next argument treated as reply-to-address.  The address given on the new Sender: line is of the form
+option is used, next argument treated as reply-to-address.  The
+address given on the new Reply-To: line is of the form
 .I reply-to-address@list-host
 (if address already contains '@' sign, 
 .I reply-to-address 
@@ -110,6 +116,12 @@ goes back out is long enough to trigger the
 loop detection ``feature''.
 All other
 header fields are passed through unmodified.
+.PP
+If the
+.B \-L
+option is used, next argument is used as a file name for the list of
+recipients.  The mail is sent both to the address contained in the
+file and to the address recip-1, recip-2, ...
 .PP
 .I Distribute
 checks to be sure that the parens and angle-brackets are matched on
@@ -170,22 +182,22 @@ To use
 .I distribute,
 set up the aliases for the list as follows:
 .RS .5i
-owner-my-list: myname
-.ti 1i
-my-list: "|/somewhere/distribute -l my-list -h my-host other_options
-my-list-outgoing"
+my-list: /homewhere/my-list-dist
 .ti 1i
 my-list-request: myname
-.ti 1i
-my-list-outgoing::include:/someplace/my-list-recipients
 .RE
-.PP
-Note that
-.I distribute
-must run setuid to the user-id of a
-.I sendmail
-trusted user.  Therefore, its users will have to make their own setuid copy
-of this program.
+and set up /homewhere/my-list-dist file as follows:
+.RS .5i
+| /somewhere/distribute -l my-list -h my-host other-options
+-L /somewhere/my-list-recipients-file
+.RE
+.\" .PP
+.\" Note that
+.\" .I distribute
+.\" must run setuid to the user-id of a
+.\" .I sendmail
+.\" trusted user.  Therefore, its users will have to make their own setuid copy
+.\" of this program.
 .SH "SEE ALSO"
 sendmail(8)
 .LP
@@ -215,9 +227,12 @@ Miller,
 .I steve@umiacs.umd.edu.
 Made still more correct with respect to RFC822 by Dave Balenson,
 .I db@tis.com.
-Sequence facility and some hack by Shin Yoshimura,
-.I shin@nc.u-tokyo.ac.jp.
-Yoshitaka Tokugawa,
+Sequence facility and some hack by Shin Yoshimura (
+.I shin@nc.u-tokyo.ac.jp
+), Yoshitaka Tokugawa (
 .I toku@dit.co.jp
-Shigeya Suzuki
+), Shigeya Suzuki (
 .I shigeya@foretune.co.jp
+), and Hiroaki Takada (
+.I hiro@is.s.u-tokyo.ac.jp
+).
