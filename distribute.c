@@ -73,7 +73,7 @@
 
 
 
-char *rcsID = "distribute.c,v 1.30 1994/08/05 12:04:45 shigeya Exp";
+char *rcsID = "$Id$";
 char *versionID = VERSION;
 int patchlevel = PATCHLEVEL;
 
