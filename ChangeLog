@@ -1,3 +1,20 @@
+Mon May 31 15:44:07 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* Patchlevel=5 FIX
+
+	* main ルーチンを小さくする作業を始めた
+
+	* 単にexitするのではなく、syslog への書き込みを行なうようにした。
+
+Fri May 28 11:21:28 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* Added: ADDVERSION, to add X-Distribute header
+
+	* fix by minmin@astec, not touch continuation line header.
+
+	* fix by miyoshi@iij, several sprintf parameter incorrect, and
+	  compile option display incorrect.
+
 Fri May 21 10:28:39 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* recipient が多い場合、可変長文字列のreallocにバグがいる関係で、

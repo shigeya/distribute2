@@ -154,11 +154,14 @@ FILE * fp;	/* File pointer to the start of the message. */
 			   it.  Make sure that it starts with a tab.
 			   Add as much as will fit to the current
 			   header line.  Toss anything beyond that.
-
 			*/
+			/* We do not think it is good idea to replace
+			 * leading character to TAB. Thus, commented out.
+			 * We try to avoid to touch header.
+			 */
 			if (head_len < MAX_HEADER_LEN)
 			{
-				*line = '\t';
+/*				*line = '\t'; */
 				(void)strncat(&head_line[head_len], line,
 					MAX_HEADER_LEN - head_len);
 				head_len += min(MAX_HEADER_LEN - head_len,

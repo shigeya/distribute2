@@ -17,4 +17,4 @@ longstr.c		long string handling library
 longstr.h		long string handling library
 testlongstr.c		long string handling library test routines
 cdefs.h			ANSI C glue
-resutcheck.pl		result checking perl script
+resultcheck.pl		result checking perl script

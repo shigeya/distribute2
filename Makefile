@@ -10,10 +10,15 @@
 
 #
 # Available options:
-#	-DISSUE		include X-Sequence sequence numbering
-#	-DSUBJALIAS	put in subject alias like "(MailingListName 1)"
+#	-DSYSLOG		include syslog based logging
+#	-DISSUE			include X-Sequence sequence numbering
+#	-DSUBJALIAS		put in subject alias like "(MailingListName 1)"
+#	-DADDVERSION		Add X-Distribute: Version SOMETHING to header
+#	-DDEBUGLOG		Debug level logging (in /tmp/distribute.log)
+# 	-DSYSLOG_FACILITY=n	-- value for syslogd's facility value
+#				   defaulted to LOG_LOCAL4
 #
-OPTIONS= -DISSUE -DSUBJALIAS
+OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION -DSYSLOG_FACILITY=LOG_LOCAL4
 #
 
 #

@@ -63,7 +63,8 @@ ls_grow(p, size)
 	: ((diff / p->ls_allocsize)+1) * p->ls_allocsize;
 
     if ( (p->ls_size + chunk) >= NCARGS) { /* exceeds limit */
-	exit(EX_UNAVAILABLE);
+	logandexit(EX_UNAVAILABLE, "limit %d exceeded (%d)",
+		   NCARGS, p->ls_size + chunk);
     }
 
 #ifdef DEBUG

@@ -8,6 +8,10 @@
 #include <sys/file.h>
 #include <sys/param.h>
 
+#ifdef SYSLOG
+# include <syslog.h>
+#endif
+
 #include "patchlevel.h"		/* version identifier */
 #include "longstr.h"
 
@@ -65,6 +69,10 @@ int patchlevel = PATCHLEVEL;
 # define DEF_CLOSEALIAS_CHAR	')'
 #endif
 
+#ifndef SYSLOG_FACILITY
+# define SYSLOG_FACILITY	LOG_LOCAL4
+#endif
+
 extern	int head_parse();
 extern	void head_norm();
 extern	char * head_find();
@@ -77,6 +85,9 @@ char *progname;
 
 struct longstr cmdbuf;
 
+#ifdef DEBUGLOG
+FILE* debuglog;
+#endif
 
 /* constants
  */
@@ -97,7 +108,7 @@ char closealiaschar = DEF_CLOSEALIAS_CHAR;
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
 
 
-#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:RsdeiV"
+#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:RsdeiVA"
 
 void
 usage() {
@@ -112,9 +123,8 @@ usage() {
     fprintf(stderr, " [-a aliasid] [-B brace_lr]");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "	[-RsdeiV] [-m sendmail-flags]\n");
+    fprintf(stderr, "	[-RsdeiVA] [-m sendmail-flags]\n");
     fprintf(stderr, "	{-L recip-addr-file | recip-addr ...}\n");
-    exit(EX_USAGE);
 }
 
 printversion()
@@ -126,11 +136,20 @@ printversion()
     fprintf(stderr, "patchlevel %d\n", patchlevel);
     fprintf(stderr, "%s\n", rcsID);
     fprintf(stderr, "\nOptions:");
-#ifdef ISSUEFILE
-    fprintf(stderr, " [ISSUEFILE]");
+#ifdef SYSLOG
+    fprintf(stderr, " [SYSLOG]");
+#endif
+#ifdef ISSUE
+    fprintf(stderr, " [ISSUE]");
 #endif
 #ifdef SUBJALIAS
     fprintf(stderr, " [SUBJALIAS]");
+#endif
+#ifdef ADDVERSION
+    fprintf(stderr, " [ADDVERSION]");
+#endif
+#ifdef DEBUGLOG
+    fprintf(stderr, " [DEBUGLOG]");
 #endif
     fprintf(stderr, "\nDefaults:\n");
 #ifdef DEF_ALIAS_CHAR_OPTION
@@ -142,7 +161,7 @@ printversion()
     fprintf(stderr, "\tRecipient file default path: %s\n", DEF_RECIPIENT_PATH);
     fprintf(stderr, "\tSequence file default path:  %s\n", DEF_SEQ_PATH);
 
-    exit(EX_USAGE);
+    exit(0);
 }
 
 
@@ -210,7 +229,7 @@ xmalloc(len)
     char *malloc();
     char *p = malloc(len);
     if (p == NULL) {
-	exit(EX_UNAVAILABLE);
+	logandexit(EX_UNAVAILABLE, "insufficient memory");
     }
     return p;
 }
@@ -225,7 +244,7 @@ xrealloc(p, len)
     char *realloc();
     char *np = realloc(p,len);
     if (np == NULL) {
-	exit(EX_UNAVAILABLE);
+	logandexit(EX_UNAVAILABLE, "insufficient memory");
     }
     return np;
 }
@@ -279,7 +298,7 @@ adddefaultpath(defpath, name, suffix)
     char *p;
     
     if (name == NULL) {
-	exit(EX_UNAVAILABLE);
+	logandexit(EX_UNAVAILABLE, "invalid filename");
     }
 
     if (*name == '/') {		/* is absolute path */
@@ -294,8 +313,9 @@ adddefaultpath(defpath, name, suffix)
 
     p = rindex(buf, '\0');
 
-    if (p == NULL)		/* must not happen */
-	exit(EX_UNAVAILABLE);
+    if (p == NULL) { 		/* must not happen */
+	programerror();
+    }
 
     if (p > buf && p[-1] != '/')  /* add / if missing */
 	strcat(buf, "/");
@@ -378,6 +398,7 @@ char ** argv;
 	char *senderaddr = NULL;/* sender address for Sender: line */
 	char *header;		/* A pointer to a header */
 	char subject[1024];
+	char subjectbuf[1024];
 	char *aliasid = NULL;
 	char *sendmailargs = NULL;	/* add'l args to sendmail */
 	char *issuefile = NULL;
@@ -387,6 +408,9 @@ char ** argv;
 	char *replyto = NULL;
 #ifdef ISSUE
 	int issuenum = 0;
+#endif
+#ifdef ADDVERSION
+	int addversion = 1;	/* default */
 #endif
 	int badhdr = 0;		/* something is fishy about the header */
 	int wasadmin = 0;	/* was a noise message */
@@ -403,6 +427,18 @@ char ** argv;
 	extern int optind;
 	int optionerror = 0;
 	
+#ifdef SYSLOG	
+	openlog("distribute", LOG_PID, SYSLOG_FACILITY);
+#endif
+#ifdef DEBUGLOG
+	debuglog = fopen("/tmp/distribute.log", "a");
+	if (debuglog == NULL) {
+	    logandexit(EX_UNAVAILABLE, "can't open debug log");
+	}
+	fprintf(debuglog, "---\n");
+	fprintf(debuglog, "invoked: pid=%d\n", getpid());
+#endif
+
 	chdir("/tmp");
 
 	arginit();
@@ -422,9 +458,9 @@ char ** argv;
 	    closealiaschar = closec;
 	}
 	else {
-	    fprintf(stderr, "Error in compile-in default of -B%s\n",
-		    DEF_ALIAS_CHAR_OPTION);
-	    exit(EX_NOINPUT);
+	    logandexit(EX_NOINPUT,
+		       "Error in compile-in default of -B%s\n",
+		       DEF_ALIAS_CHAR_OPTION);
 	}
 #endif
 
@@ -527,33 +563,43 @@ char ** argv;
 		    printversion();
 		    break;	/* notreached */
 
+#ifdef ADDVERSION
+		case 'A':
+		    addversion = 0;
+		    break;
+#endif		    
 		default:
+		    usage();
+		    logandexit(EX_USAGE, "unknown option: %c", c);
+		    break;
+
 		case '?':
-			usage();
+		    usage();
+		    exit(0);
+		    break;	/* notreached */
 		}
 	}
-
 
 	/* external configuration file existence check & file open
 	 */
 	if (headerfile != NULL) {
 	    if ((headf = fopen(headerfile, "r")) == NULL) {
-		fprintf(stderr, "can't open header file '%s'\n", headerfile);
-		exit(EX_NOINPUT);
+		logandexit(EX_NOINPUT,
+			    "can't open header file '%s'\n", headerfile);
 	    }
 	}
 
 	if (footerfile != NULL) {
 	    if ((footf = fopen(footerfile, "r")) == NULL) {
-		fprintf(stderr, "can't open footer file '%s'\n", footerfile);
-		exit(EX_NOINPUT);
+		logandexit(EX_NOINPUT,
+			"can't open footer file '%s'\n", footerfile);
 	    }
 	}
 
 	if (recipfile != NULL) {
 	    if ((recipf = fopen(recipfile, "r")) == NULL) {
-		fprintf(stderr, "can't open receipt address file '%s'\n", recipfile);
-		exit(EX_NOINPUT);
+		logandexit(EX_NOINPUT,
+			"can't open receipt address file '%s'\n", recipfile);
 	    }
 	}
 
@@ -562,8 +608,10 @@ char ** argv;
 	/*
 	 * We need at least the host name and the list name...
 	 */
-	if (host == NULL || list == NULL || optionerror)
-		usage();
+	if (host == NULL || list == NULL || optionerror) {
+	    usage();
+	    logandexit(EX_USAGE, "require hostname and list name or bad usage");
+	}
 
 	/*
 	 * Read all of the headers and make a header vector
@@ -571,79 +619,10 @@ char ** argv;
 	headc = head_parse(100, headv, stdin);
 
 	/*
-	 * Make sure that the first space character in each header line
-	 * is a blank
+	 * Clean header
 	 */
-	for (i=0; i<headc; i++)
-		head_blank(headv[i]);
-
-	/*
-	 * The transformations we need to make here are not completely clear.
-	 * The following table attempts to describe our transformations:
-	 *
-	 * 	Field			Action
-	 * 	-----			------
-	 *
-	 *	From_			delete; this is a new message
-	 *	From:			leave alone; shows the real sender
-	 *	To:			leave alone; shows the list name
-	 *	Cc:			leave alone
-	 * 	Date:			leave alone
-	 *	Reply-To:		delete and add our own (if "-r")
-	 *	Message-Id:		leave alone
-	 *	Return-Receipt-To:	delete to avoid skillions of receipts
-	 *	Errors-To:		delete (add our own if "-e")
-	 *	Return-Path:		delete (not needed?)
-	 *	Received:		optional; can generate spurious
-	 *				    bounces if sendmail sees too many,
-	 *				    but is useful for debugging.
-	 *	Sender:			delete and add our own
-	 *	Resent-Sender:		leave alone, I suppose.  We should
-	 *				    think about deleting Resent-*
-	 *				    (since those fields will in some
-	 * 				    cases take precedence over our
-	 *				    own), but not now.  The handling
-	 *				    of Resent-* fields needs to be
-	 *				    the topic of a new RFC...
-	 *	X-Sequence:		delete and add our own
-	 */
-
-	/* 
-	 * Delete the From_ header.
-	 */
-	if ((header = head_delete(headc, headv, "From ")) != NULL)
-		free(header);
-
-	/*
-	 * Delete the Sender: line.
-	 */
-	if ((header = head_delete(headc, headv, "Sender:")) != NULL)
-		free(header);
-
-	/*
-	 * Delete the Return-Receipt-To: header.
-	 */
-	if ((header = head_delete(headc, headv, "Return-Receipt-To:")) != NULL)
-		free(header);
-
-	/*
-	 * Delete the Errors-To: header.
-	 */
-	if ((header = head_delete(headc, headv, "Errors-To:")) != NULL)
-		free(header);
-
-	/*
-	 * Delete the Return-Path: header.
-	 */
-	if ((header = head_delete(headc, headv, "Return-Path:")) != NULL)
-		free(header);
-
-	/*
-	 * Delete the X-Volume-Issue
-	 */
-	if ((header = head_delete(headc, headv, "X-Sequence:")) != NULL)
-		free(header);
-
+	cleanheader(headc, headv);
+	
 	/*
 	 * Delete the Reply-To: header
 	 */
@@ -784,8 +763,7 @@ char ** argv;
 	else {
 		pipe = popen(argget(), "w");
 		if (pipe == NULL) {
-			perror("distribute: popen failed");
-			exit(1);
+		    logandexit(EX_UNAVAILABLE, "popen to sendmail failed");
 		}
 	}
 
@@ -816,9 +794,22 @@ char ** argv;
 		if (index(replyto,'@') == NULL)
 		    fprintf(pipe, "Reply-To: %s@%s\n", replyto, host);
 		else
-		    fprintf(pipe, "Reply-To: %s\n", replyto, host);
+		    fprintf(pipe, "Reply-To: %s\n", replyto);
 	    }
 	}
+
+#ifdef ADDVERSION
+	/*
+	 * Add X-distribute
+	 */
+	if (addversion) {
+	    fprintf(pipe, "X-Distribute: distribute [version %s", versionID);
+#ifdef RELEASESTATE
+	    fprintf(pipe, " (%s)", RELEASESTATE);
+#endif
+	    fprintf(pipe, " patchlevel=%d]\n",patchlevel);
+	}	
+#endif	
 
 #ifdef ISSUE
 	if (issuenum) {
@@ -861,20 +852,27 @@ char ** argv;
 				p++;
 		}
 		if (issuenum)
-		    fprintf(pipe, "Subject: %c%s %d%c%s\n",
+		    sprintf(subjectbuf, "%c%s %d%c%s",
 			    openaliaschar,
 			    aliasid,issuenum,
 			    closealiaschar,
 			    subject);
 		else
-		    fprintf(pipe, "Subject: %c%s%c%s\n",
+		    printf(subjectbuf, "%c%s%c%s",
 			    openaliaschar,
 			    aliasid,
 			    closealiaschar,
 			    subject);
 	} else
 #endif
-		fprintf(pipe, "Subject:%s\n",subject);
+	    strcpy(subjectbuf, subject);
+
+	fprintf(pipe, "Subject: %s\n", subjectbuf);
+
+#ifdef DEBUGLOG
+	fprintf(debuglog, "Command: %s\n", argget());
+	fprintf(debuglog, "Subject: %s\n", subjectbuf);
+#endif
 
 	if (errorsto)
 	    fprintf(pipe, "Errors-To: %s-request@%s\n", list, host);
@@ -888,7 +886,7 @@ char ** argv;
 		if (index(senderaddr,'@') == NULL)
 			fprintf(pipe, "Sender: %s@%s\n\n", senderaddr, host);
 		else
-			fprintf(pipe, "Sender: %s\n\n", senderaddr, host);
+			fprintf(pipe, "Sender: %s\n\n", senderaddr);
 	}
 	else
 		fprintf(pipe, "Sender: %s-request@%s\n\n", list, host);
@@ -897,26 +895,131 @@ char ** argv;
 	 * If something was wrong, tell the list maintainer.
 	 */
 	if (badhdr)
-		fprintf(pipe, "WARNING: unsent message: header problem.\n\n");
+		logwarn("unsent message: header problem.\n\n");
 	if (wasadmin)
-		fprintf(pipe, "WARNING: unsent message: was administrivia.\n\n");
+		logwarn("unsent message: was administrivia.\n\n");
 
 	/*
 	 * Dump the message thru the pipe.  We push out the header, then
 	 * the message body, then the footer.
 	 */
 	if (headf != NULL) {
-		while (fgets(buf, sizeof buf, headf) != NULL)
-			fputs(buf, pipe);
+	    while (fgets(buf, sizeof buf, headf) != NULL) {
+#ifdef DEBUGLOG		
+		fputs(buf, debuglog);
+#endif
+		fputs(buf, pipe);
+	    }
 	}
+
 	while (fgets(buf, sizeof buf, noisef == NULL ? stdin : noisef) != NULL)
 		fputs(buf, pipe);
+
 	if (footf != NULL) {
 		while (fgets(buf, sizeof buf, footf) != NULL)
 			fputs(buf, pipe);
 	}
+
+	fclose(pipe);
+
+#ifdef SYSLOG
+	syslog(LOG_INFO, "\"%s\" sent", subjectbuf);
+#endif
 	exit(0);
 }
+
+
+cleanheader(headc, headv)
+    int headc;
+    char **headv;
+{
+    int i;
+    char *header;		/* A pointer to a header */
+
+    /*
+     * Make sure that the first space character in each header line
+     * is a blank
+     */
+    for (i=0; i<headc; i++)
+	head_blank(headv[i]);
+    
+    /*
+     * The transformations we need to make here are not completely clear.
+     * The following table attempts to describe our transformations:
+     *
+     * 	Field			Action
+     * 	-----			------
+     *
+     *	From_			delete; this is a new message
+     *	From:			leave alone; shows the real sender
+     *	To:			leave alone; shows the list name
+     *	Cc:			leave alone
+     * 	Date:			leave alone
+     *	Reply-To:		delete and add our own (if "-r")
+     *	Message-Id:		leave alone
+     *	Return-Receipt-To:	delete to avoid skillions of receipts
+     *	Errors-To:		delete (add our own if "-e")
+     *	Return-Path:		delete (not needed?)
+     *	Received:		optional; can generate spurious
+     *				    bounces if sendmail sees too many,
+     *				    but is useful for debugging.
+     *	Sender:			delete and add our own
+     *	Resent-Sender:		leave alone, I suppose.  We should
+     *				    think about deleting Resent-*
+     *				    (since those fields will in some
+     * 				    cases take precedence over our
+     *				    own), but not now.  The handling
+     *				    of Resent-* fields needs to be
+     *				    the topic of a new RFC...
+     *	X-Sequence:		delete and add our own
+     *	X-Distribute:		our version header
+     */
+    
+    /* 
+     * Delete the From_ header.
+     */
+    if ((header = head_delete(headc, headv, "From ")) != NULL)
+	free(header);
+    
+    /*
+     * Delete the Sender: line.
+     */
+    if ((header = head_delete(headc, headv, "Sender:")) != NULL)
+	free(header);
+    
+    /*
+     * Delete the Return-Receipt-To: header.
+     */
+    if ((header = head_delete(headc, headv, "Return-Receipt-To:")) != NULL)
+	free(header);
+    
+    /*
+     * Delete the Errors-To: header.
+     */
+    if ((header = head_delete(headc, headv, "Errors-To:")) != NULL)
+	free(header);
+    
+    /*
+     * Delete the Return-Path: header.
+     */
+    if ((header = head_delete(headc, headv, "Return-Path:")) != NULL)
+	free(header);
+    
+    /*
+     * Delete the X-Volume-Issue
+     */
+    if ((header = head_delete(headc, headv, "X-Sequence:")) != NULL)
+	free(header);
+    
+#ifdef ADDVERSION
+    /*
+     * Delete X-Distribute
+     */
+    if ((header = head_delete(headc, headv, "X-Distribute:")) != NULL)
+	free(header);
+#endif	
+}
+
 
 
 /* getnextissue -- returns next available issue number
@@ -934,8 +1037,8 @@ getnextissue(filename)
 
 	if ((fd = open(filename,O_RDWR)) < 0) {
 		if ((fd = creat(filename, 0664)) < 0) {
-			perror("distribute: can't create issue file");
-			exit(EX_NOINPUT);
+		    logandexit(EX_NOINPUT,
+			"can't create issue file: %s", filename);
 		}
 		write(fd,"1\n",2);
 		close(fd);
@@ -1015,4 +1118,26 @@ checkhdr(s)
 	if (nangles == 0 && nparens == 0)
 		return(0);
 	return(1);
+}
+
+
+logandexit(exitcode, fmt, a1, a2)
+    int exitcode;
+    char *fmt;
+    char *a1, *a2;
+{
+    syslog(LOG_ERR, fmt, a1, a2);
+    exit(exitcode);
+}
+
+programerror()
+{
+    logandexit(EX_UNAVAILABLE, "program error");
+}
+
+logwarn(fmt, a1, a2)
+    char *fmt;
+    char *a1, *a2;
+{
+    syslog(LOG_WARNING, fmt, a1, a2);
 }
