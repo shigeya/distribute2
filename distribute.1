@@ -1,3 +1,4 @@
+.\" $Id$
 .TH DISTRIBUTE 1  "26 November 1991"
 .SH NAME
 distribute \- reforward incoming messages to a mailing list
@@ -19,8 +20,8 @@ distribute \- reforward incoming messages to a mailing list
 .I sequence-label
 ]
 [
-.B \-v
-.I sequence-number-file
+.B \-I
+.I issue-sequence-number-file
 ]
 [
 .B \-H
@@ -76,17 +77,22 @@ option is used, next argument treated as reply-to-address.  The address given on
 is used.)
 .PP
 If the
-.B \-v
-option is used. Next argument is used as a file name for sequence number. 
-The file contains only a single number for X-Sequence: nnnn.  
+.B \-I
+option is used, next argument is used as a file name for sequence number. 
+The file contains only a single number for X-Sequence: nnnn.  If the file does not exist, 
+.I distribute
+will create new file, and start sequence from one.
 If the
 .B \-a
-option is used. Additional feature for sequenceing is processed.  Next argument is treated as a alias-id.
+option is used, Additional feature for sequenceing is processed.  Next argument is treated as a alias-id.
 X-Sequence: 
 .I alias-id nnnn, 
 and Subject header is changed to
 Subject: 
-.I (alias-id nnnn) Subject strings.
+.I (alias-id nnnn) Real Subject.
+Care of
+.B Re:
+sequence is also taken.
 .PP
 If the
 .B \-e
@@ -209,5 +215,9 @@ Miller,
 .I steve@umiacs.umd.edu.
 Made still more correct with respect to RFC822 by Dave Balenson,
 .I db@tis.com.
-Included sequence facility and some hacked by Shin Yoshimura,
+Sequence facility and some hack by Shin Yoshimura,
 .I shin@nc.u-tokyo.ac.jp.
+Yoshitaka Tokugawa,
+.I toku@dit.co.jp
+Shigeya Suzuki
+.I shigeya@foretune.co.jp

@@ -1,3 +1,5 @@
+/* $Id$ */
+
 /* Routines to read & munge mail & news headers.
 
    A header starts with a non space character in the first column.

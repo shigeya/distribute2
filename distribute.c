@@ -1,7 +1,10 @@
+/* $Id$ */
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include <sysexits.h>
+#include <sys/types.h>
+#include <sys/file.h>
 
 /*
  * Send a mail message to users on a distribution list.  The message
@@ -16,6 +19,16 @@
  *
  */
 
+/* Modified by:
+ *
+ *	Shin Yoshimura		<shin@wide.ad.jp>
+ *	Yoshitaka Tokugawa	<toku@dit.co.jp>
+ *	Shigeya Suzuki		<shigeya@foretune.co.jp>
+ */
+
+
+char *index();
+
 extern	int head_parse();
 extern	void head_norm();
 extern	char * head_find();
@@ -27,11 +40,18 @@ char *progname;
 
 void
 usage() {
-	fprintf(stderr, "usage: %s -h host -l list [ -f senderaddr ] \ \n",
+	fprintf(stderr, "usage: %s -h host -l list [ -f senderaddr ]\n",
 		progname);
-	fprintf(stderr, "    [ -H headerfile ] [ -F footerfile ] \ \n");
-	fprintf(stderr, "    [ -r replytoaddr ] [-a aliasid] \ \n");
-	fprintf(stderr, "    [ -Rsdev ] [ -m sendmail-flags ] recip-addr ...\n");
+	fprintf(stderr, "    [ -H headerfile ] [ -F footerfile ]\n");
+	fprintf(stderr, "    [ -r replytoaddr ]");
+#ifdef ISSUE
+	fprintf(stderr, " [ -I issuenumberfile ]");
+#endif
+#ifdef SUBJALIAS
+	fprintf(stderr, " [ -a aliasid ]");
+#endif
+	fprintf(stderr, "\n");
+	fprintf(stderr, "    [ -Rsde ] [ -m sendmail-flags ] recip-addr ...\n");
 	exit(EX_USAGE);
 }
 
@@ -106,10 +126,11 @@ char ** argv;
 	char subject[1024];
 	char *aliasid = NULL;
 	char *sendmailargs = NULL;	/* add'l args to sendmail */
-	char *volissue = NULL;
+	char *issuefile = NULL;
 	char *replyto = NULL;
-	FILE *vi = NULL;
-	int volume, issue;
+#ifdef ISSUE
+	int issuenum = 0;
+#endif
 	int badhdr = 0;		/* something is fishy about the header */
 	int wasadmin = 0;	/* was a noise message */
 	char buf[1024];
@@ -125,7 +146,7 @@ char ** argv;
 	chdir("/tmp");
 
 	progname = argv[0];
-	while ((c = getopt(argc, argv, "h:f:Rsel:H:dF:m:v:r:a:")) != EOF) {
+	while ((c = getopt(argc, argv, "h:f:Rsel:H:dF:m:v:I:r:a:")) != EOF) {
 		switch(c) {
 		case 'h':	/* hostname */
 			host = optarg;
@@ -173,8 +194,9 @@ char ** argv;
 			sendmailargs = optarg;
 			break;
 
+		case 'I':	/* add isssue number */
 		case 'v':	/* add vol issue header */
-			volissue = optarg;
+			issuefile = optarg;
 			break;
 
 		case 'r':	/* replyto header */
@@ -395,20 +417,20 @@ char ** argv;
 	else
 		fprintf(pipe, "Reply-To: %s@%s\n", list, host);
 		
-	if (volissue != NULL) {
-		vi = fopen(volissue,"r");
-		fscanf(vi,"%d",&issue);
-		fclose(vi);
-		issue++;
-		vi = fopen(volissue,"w");
-		fprintf(vi,"%d\n",issue);
-		fclose(vi);
+#ifdef ISSUE
+	if (issuefile != NULL) {
+		int getnextissue();
+		issuenum = getnextissue(issuefile);
+#ifdef SUBJALIAS
 		if (aliasid != NULL)
-			fprintf(pipe, "X-Sequence: %s %d\n",aliasid,issue);
+			fprintf(pipe, "X-Sequence: %s %d\n",aliasid,issuenum);
 		else
-			fprintf(pipe, "X-Sequence: %d\n",issue);
+#endif
+			fprintf(pipe, "X-Sequence: %d\n",issuenum);
 	}
+#endif
 
+#if defined(ISSUE) && defined(SUBJALIAS)
 	if (aliasid != NULL) {
 		register char *p = subject;
 		register int l;
@@ -437,9 +459,10 @@ char ** argv;
 			} else
 				p++;
 		}
-		fprintf(pipe, "Subject: (%s %d)%s\n",aliasid,issue,subject);
+		fprintf(pipe, "Subject: (%s %d)%s\n",aliasid,issuenum,subject);
 	} else
 		fprintf(pipe, "Subject:%s\n",subject);
+#endif
 
 	if (errorsto)
 		fprintf(pipe, "Errors-To: owner-%s@%s\n", list, host);
@@ -476,6 +499,50 @@ char ** argv;
 	}
 	exit(0);
 }
+
+
+/* getnextissue -- returns next available issue number
+ * do exclusive lock also.
+ */
+#ifdef ISSUE
+int
+getnextissue(filename)
+	char *filename;
+{
+	char buf[128];		/* enough to hold number */
+	int fd;
+	int issue;
+	char *p;
+
+	if ((fd = open(filename,O_RDWR)) < 0) {
+		if ((fd = creat(filename, 0664)) < 0) {
+			perror("distribute: can't create issue file");
+			exit(0);
+		}
+		write(fd,"1\n",2);
+		close(fd);
+		return 1;
+	}
+	flock(fd, LOCK_EX);
+	read(fd, buf, sizeof(buf));
+
+	if ((p = index(buf,'\n')) != NULL) {	/* failsafe */
+		*p = '\0';
+		issue = atoi(buf);
+		issue++;
+	}
+	else {
+		/* wrong format. reset it */
+		issue = 1;
+	}
+	lseek(fd, 0, L_SET);
+	sprintf(buf, "%d\n", issue);
+	write(fd,buf,strlen(buf));
+	flock(fd, LOCK_UN);
+	close(fd);
+	return issue;
+}
+#endif
 
 /*
  * Check for mismatched parens, angle-brackets, and fields too long for
