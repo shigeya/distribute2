@@ -7,14 +7,49 @@
 # Modified by: shin@u-tokyo.ac.jp, toku@dit.co.jp, shigeya@foretune.co.jp
 #		and hiro@is.s.u-tokyo.ac.jp
 #
+
+#
 # Available options:
 #	-DISSUE		include X-Sequence sequence numbering
 #	-DSUBJALIAS	put in subject alias like "(MailingListName 1)"
 #
 OPTIONS= -DISSUE -DSUBJALIAS
 #
+
+#
+# DEFAULT parameters -- YOU SHOULD EDIT THESE
+#
+# DEF_DOMAINNAME	-- default domain name attached to list-name
+# [default: undef]	   like MailingListName@My.Domain.Name
+#			   Define to your domain name, or undefine it.
+#			   If undefined, hostname will be attached.
+#
+# DEF_SEQ_PATH		-- default path to directory which holds
+# [default:			   sequence number files.
+#   /usr/lib/mail-list]
+#
+# DEF_RECIPIENT_PATH	-- default path to directory which holds
+# [default:		   recipient list files.
+#   /usr/lib/mail-list]
+#
+# DEF_SEQ_SUFFIX	-- default suffix for sequence files.
+# [default: .seq]
+#
+# DEF_RECIPIENT_SUFFIX	-- default suffix for recipient list files.
+# [default: .rec]
+#
+
+# EXAMPLE:
+## DEFAULTCONFIG=\
+##	-DDEF_DOMAINNAME=\"foretune.co.jp\" \
+##	-DDEF_SEQ_PATH=\"/proj/proj.mail/seq\" \
+##	-DDEF_RECIPIENT_PATH=\"/proj/proj.mail\"
+
+#
 DESTDIR=
-CFLAGS=	-O -g -DISSUE -DSUBJALIAS
+#
+CFLAGS=	-O -g ${OPTIONS} ${DEFAULTCONFIG}
+
 LIBS=
 MAKE=	make
 WHERE=	/usr/local/lib

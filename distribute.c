@@ -1,10 +1,12 @@
 /* $Id$ */
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
 #include <sysexits.h>
 #include <sys/types.h>
 #include <sys/file.h>
+#include <sys/param.h>
 
 /*
  * Send a mail message to users on a distribution list.  The message
@@ -31,7 +33,24 @@
  *	Hiroaki Takada		<hiro@is.s.u-tokyo.ac.jp>
  */
 
-#define	MAXCMD	10240
+/* Default configuration check and define if not defined
+ */
+#ifndef DEF_SEQ_PATH
+# define DEF_SEQ_PATH		"/usr/lib/mail-list"
+#endif
+
+#ifndef DEF_RECIPIENT_PATH
+# define DEF_RECIPIENT_PATH	"/usr/lib/mail-list"
+#endif
+
+#ifndef DEF_SEQ_SUFFIX
+# define DEF_SEQ_SUFFIX		".seq"
+#endif
+
+#ifndef DEF_RECIPIENT_SUFFIX
+# define DEF_RECIPIENT_SUFFIX	".rec"
+#endif
+
 
 extern	int head_parse();
 extern	void head_norm();
@@ -39,26 +58,47 @@ extern	char * head_find();
 extern	char * head_delete();
 extern	char * tmpnam();
 extern	char * index();
+extern	char * rindex();
+
 char *progname;
+
+
+#define	CMDBUFCHUNK	1024	/* minimum and command buffer grow chunk */
+
+char *cmdbuf = NULL;
+char *cmdbuf_p = NULL;
+size_t cmdbuf_size = 0;		/* size of currently allocated cmdbuf */
+size_t cmdbuf_used = 0;		/* used amount of cmdbuf */
+
+/* constants
+ */
+char *seq_path = DEF_SEQ_PATH;
+char *recipient_path = DEF_RECIPIENT_PATH;
+
+char *seq_suffix = DEF_SEQ_SUFFIX;
+char *recipient_suffix = DEF_RECIPIENT_SUFFIX;
+
+char myhostname[MAXHOSTNAMELEN];
 
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
 
+
 void
 usage() {
-	fprintf(stderr, "usage: %s -h host -l list [ -f senderaddr ]\n",
-		progname);
-	fprintf(stderr, "    [ -H headerfile ] [ -F footerfile ]\n");
-	fprintf(stderr, "    [ -r replytoaddr ]");
+    fprintf(stderr, "usage: %s ", progname);
+    fprintf(stderr, "{-M list | -N list | -h host -l list} [-f senderaddr]\n");
+    fprintf(stderr, "	[-H headerfile] [-F footerfile]\n");
+    fprintf(stderr, "	[-r replytoaddr ]");
 #ifdef ISSUE
-	fprintf(stderr, " [ -I issuenumberfile ]");
+    fprintf(stderr, " [-I issuenumberfile]");
 #endif
 #ifdef SUBJALIAS
-	fprintf(stderr, " [ -a aliasid ]");
+    fprintf(stderr, " [-a aliasid]");
 #endif
-	fprintf(stderr, "\n");
-	fprintf(stderr, "    [ -Rsde ] [ -m sendmail-flags ]\n");
-	fprintf(stderr, "    [ -L recip-addr-file ] recip-addr ...\n");
-	exit(EX_USAGE);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "	[-Rsde] [-m sendmail-flags]\n");
+    fprintf(stderr, "	{-L recip-addr-file | recip-addr ...}\n");
+    exit(EX_USAGE);
 }
 
 /*
@@ -116,6 +156,152 @@ checkadmin(infile, newfile)
 	return(count < 25 && drop_or_add && from_or_to && mail_word);
 }
 
+/* allocate or fail
+ */
+char*
+xmalloc(len)
+    size_t len;
+{
+    char *malloc();
+    char *p = malloc(len);
+    if (p == NULL) {
+	exit(EX_UNAVAILABLE);
+    }
+    return p;
+}
+
+/* reallocate or fail
+ */
+char*
+xrealloc(p, len)
+    char *p;
+    size_t len;
+{
+    char *realloc();
+    char *np = realloc(p,len);
+    if (np == NULL) {
+	exit(EX_UNAVAILABLE);
+    }
+    return np;
+}
+
+/* Reset command line buffer
+ * We do not re-allocate buffer on reset
+ */
+void
+cmdbuf_reset()
+{
+    if (cmdbuf == NULL) {
+	cmdbuf = xmalloc(CMDBUFCHUNK);
+	cmdbuf_size = CMDBUFCHUNK;
+    }
+
+    cmdbuf_used = 0;
+    cmdbuf_p = cmdbuf;
+}
+
+/* Grow command line buffer
+ */
+void
+cmdbuf_grow(size)
+    size_t size;
+{
+    /* Rounds, and +1 */
+    int chunk = ((size / CMDBUFCHUNK)+1) * CMDBUFCHUNK;
+
+    if ( (cmdbuf_size + chunk) >= NCARGS) { /* exceeds limit */
+	/* WE NEED TO REPORT THIS TO SYSAMDIN */
+	exit(EX_UNAVAILABLE);
+    }
+
+    cmdbuf = xrealloc(cmdbuf, cmdbuf_size+chunk);
+    cmdbuf_size += chunk;
+}
+
+/* cmdbuf_append -- add memory block at end
+ */
+void
+cmdbuf_append(p, len)
+    char *p;
+    size_t len;
+{
+    bcopy(p, cmdbuf_p, len);
+    
+    cmdbuf_p += len;
+    *(cmdbuf_p+1) = '\0';
+    cmdbuf_used += len;
+}
+
+/* reset arguments
+ */
+void
+argreset()
+{
+    cmdbuf_reset();
+}
+
+/* Argcat catenates strings to the command buffer
+ */
+void
+argappend(s)
+    char *s;
+{
+    int len = strlen(s);
+    
+    if (cmdbuf == NULL) {
+	cmdbuf_reset();
+    }
+    if (cmdbuf_size < cmdbuf_used+len) {
+	cmdbuf_grow(len);
+    }
+
+    cmdbuf_append(s, len);
+}
+
+
+/* make default path
+ */
+char *
+adddefaultpath(defpath, name, suffix)
+    char *defpath;
+    char *name;
+    char *suffix;
+{
+    int len;
+    char *buf;
+    char *p;
+    
+    if (name == NULL) {
+	exit(EX_UNAVAILABLE);
+    }
+
+    if (*name == '/') {		/* is absolute path */
+	return name;		/* use it as is */
+    }
+
+    len = strlen(defpath) + strlen(name) + strlen(suffix) + 1 + 1;
+    /* one for null, one for "/" */
+
+    buf = xmalloc(len);
+    strcpy(buf, defpath);
+
+    p = rindex(buf, '\0');
+
+    if (p == NULL)		/* must not happen */
+	exit(EX_UNAVAILABLE);
+
+    if (p > buf && p[-1] != '/')  /* add / if missing */
+	strcat(buf, "/");
+
+    strcat(buf, name);
+    strcat(buf, suffix);
+
+    return buf;
+}
+
+
+/* Main Entry
+ */
 main(argc, argv)
 int argc;
 char ** argv;
@@ -134,6 +320,9 @@ char ** argv;
 	char *aliasid = NULL;
 	char *sendmailargs = NULL;	/* add'l args to sendmail */
 	char *issuefile = NULL;
+	char *recipfile = NULL;
+	char *headerfile = NULL;
+	char *footerfile = NULL;
 	char *replyto = NULL;
 #ifdef ISSUE
 	int issuenum = 0;
@@ -141,7 +330,6 @@ char ** argv;
 	int badhdr = 0;		/* something is fishy about the header */
 	int wasadmin = 0;	/* was a noise message */
 	char buf[1024];
-	char cmdbuf[MAXCMD];
 	int debug = 0;
 	int zaprecv = 0;	/* zap received lines */
 	int lessnoise = 0;	/* run ``please add/delete me'' filter */
@@ -152,9 +340,34 @@ char ** argv;
 
 	chdir("/tmp");
 
+	/* setup default */
+	gethostname(myhostname, sizeof(myhostname));
+	host = myhostname;
+
 	progname = argv[0];
-	while ((c = getopt(argc, argv, "h:f:Rsel:H:dF:m:v:I:r:a:L:")) != EOF) {
+	while ((c = getopt(argc, argv, "M:N:D:h:f:Rsel:H:dF:m:v:I:r:a:L:")) != EOF) {
 		switch(c) {
+		case 'M':	/* generic mailinglist with reply-to */
+		    errorsto++;
+		    aliasid = optarg;
+		    replyto = optarg;
+		    list = optarg;
+		    issuefile = adddefaultpath(seq_path, optarg,
+					       seq_suffix);
+		    recipfile = adddefaultpath(recipient_path, optarg,
+					       recipient_suffix);
+		    break;
+
+		case 'N':	/* generic maillinglist without reply-to */
+		    errorsto++;
+		    aliasid = optarg;
+		    list = optarg;
+		    issuefile = adddefaultpath(seq_path, optarg,
+					       seq_suffix);
+		    recipfile = adddefaultpath(recipient_path, optarg,
+					       recipient_suffix);
+		    break;
+
 		case 'h':	/* hostname */
 			host = optarg;
 			break;
@@ -180,10 +393,7 @@ char ** argv;
 			break;
 
 		case 'H': 	/* file with header */
-			if ((headf = fopen(optarg, "r")) == NULL) {
-				fprintf(stderr, "can't open header file '%s'\n", optarg);
-				exit(EX_NOINPUT);
-			}
+			headerfile = optarg;
 			break;
 
 		case 'd':	/* debug */
@@ -191,10 +401,7 @@ char ** argv;
 			break;
 
 		case 'F':	/* file with footer */
-			if ((footf = fopen(optarg, "r")) == NULL) {
-				fprintf(stderr, "can't open footer file '%s'\n", optarg);
-				exit(EX_NOINPUT);
-			}
+			footerfile = optarg;
 			break;
 
 		case 'm':	/* add'l args to sendmail */
@@ -203,7 +410,7 @@ char ** argv;
 
 		case 'I':	/* add isssue number */
 		case 'v':	/* add vol issue header */
-			issuefile = optarg;
+			issuefile = adddefaultpath(seq_path, optarg, "");
 			break;
 
 		case 'r':	/* replyto header */
@@ -215,10 +422,7 @@ char ** argv;
 			break;
 
 		case 'L':	/* recip-addr-file */
-			if ((recipf = fopen(optarg, "r")) == NULL) {
-				fprintf(stderr, "can't open receipt address file '%s'\n", optarg);
-				exit(EX_NOINPUT);
-			}
+			recipfile = adddefaultpath(recipient_path, optarg, "");
 			break;
 
 		default:
@@ -226,6 +430,32 @@ char ** argv;
 			usage();
 		}
 	}
+
+
+	/* external configuration file existence check & file open
+	 */
+	if (headerfile != NULL) {
+	    if ((headf = fopen(headerfile, "r")) == NULL) {
+		fprintf(stderr, "can't open header file '%s'\n", headerfile);
+		exit(EX_NOINPUT);
+	    }
+	}
+
+	if (footerfile != NULL) {
+	    if ((footf = fopen(footerfile, "r")) == NULL) {
+		fprintf(stderr, "can't open footer file '%s'\n", footerfile);
+		exit(EX_NOINPUT);
+	    }
+	}
+
+	if (recipfile != NULL) {
+	    if ((recipf = fopen(recipfile, "r")) == NULL) {
+		fprintf(stderr, "can't open receipt address file '%s'\n", optarg);
+		exit(EX_NOINPUT);
+	    }
+	}
+
+
 
 	/*
 	 * We need at least the host name and the list name...
@@ -344,15 +574,16 @@ char ** argv;
 	 * the sender address is the list name with the usual -request
 	 * tacked on.
 	 */
-	strcpy(cmdbuf, "/usr/lib/sendmail ");
+	argreset();
+	argappend("/usr/lib/sendmail ");
 	if (sendmailargs != NULL)
-		strcat(cmdbuf, sendmailargs);
-	strcat(cmdbuf, " -f");
+		argappend(sendmailargs);
+	argappend(" -f");
 	if (senderaddr != NULL)
-		strcat(cmdbuf, senderaddr);
+		argappend(senderaddr);
 	else {
-		strcat(cmdbuf, list);
-		strcat(cmdbuf, "-request");
+		argappend(list);
+		argappend("-request");
 	}
 	if (recipf != NULL) {
 		while (fgets(buf, sizeof buf, recipf) != NULL) {
@@ -362,14 +593,15 @@ char ** argv;
 				*p = '\0';
 			if (buf[0] == '\0' || buf[0] == '#')
 				continue;
-			strcat(cmdbuf, " ");
-			strcat(cmdbuf, buf);
+
+			argappend(" ");
+			argappend(buf);
 		}
 	}
 	for (i = optind ; i < argc ; i++)
 	{
-		strcat(cmdbuf, " ");
-		strcat(cmdbuf, argv[i]);
+		argappend(" ");
+		argappend(argv[i]);
 	}
 
 	/*
@@ -380,13 +612,24 @@ char ** argv;
 		if (headv[i] != NULL)
 		{
 			if (checkhdr(headv[i])) {
-				if (senderaddr != NULL)
-					sprintf(cmdbuf, "/usr/lib/sendmail -f%s %s", senderaddr, senderaddr);
-				else
-					sprintf(cmdbuf, "/usr/lib/sendmail -f%s-request %s-request", list, list);
+			    argreset();
+			    if (senderaddr != NULL) {
+				argappend("/usr/lib/sendmail -f");
+				argappend(senderaddr);
+				argappend(" ");
+				argappend(senderaddr);
+			    }
+			    else {
+				argappend("/usr/lib/sendmail -f");
+				argappend(list);
+				argappend("-request");
+				argappend(" ");
+				argappend(list);
+				argappend("-request");
+			    }
 
-				badhdr++;
-				break;
+			    badhdr++;
+			    break;
 			}
 		}
 	}
@@ -396,11 +639,21 @@ char ** argv;
 	 */
 	if (lessnoise) {
 		if (wasadmin = checkadmin(stdin, &noisef)) {
-			if (senderaddr != NULL)
-				sprintf(cmdbuf, "/usr/lib/sendmail -f%s %s",
-				    senderaddr, senderaddr);
-			else
-				sprintf(cmdbuf, "/usr/lib/sendmail -f%s-request %s-request", list, list);
+		    argreset();
+		    if (senderaddr != NULL) {
+			argappend("/usr/lib/sendmail -f");
+			argappend(senderaddr);
+			argappend(" ");
+			argappend(senderaddr);
+		    }
+		    else {
+			argappend("/usr/lib/sendmail -f");
+			argappend(list);
+			argappend("-request");
+			argappend(" ");
+			argappend(list);
+			argappend("-request");
+		    }
 		}
 	}
 
@@ -444,10 +697,10 @@ char ** argv;
 	 * Add a new Reply-To.
 	 */
 	if (replyto != NULL){
-		if (index(replyto,'@') == NULL)
-			fprintf(pipe, "Reply-To: %s@%s\n", replyto, host);
-		else
-			fprintf(pipe, "Reply-To: %s\n", replyto, host);
+	    if (index(replyto,'@') == NULL)
+		fprintf(pipe, "Reply-To: %s@%s\n", replyto, host);
+	    else
+		fprintf(pipe, "Reply-To: %s\n", replyto, host);
 	}
 		
 #ifdef ISSUE
@@ -499,7 +752,7 @@ char ** argv;
 		fprintf(pipe, "Subject:%s\n",subject);
 
 	if (errorsto)
-		fprintf(pipe, "Errors-To: %s-request@%s\n", list, host);
+	    fprintf(pipe, "Errors-To: %s-request@%s\n", list, host);
 
 	/*
 	 * Add a new Sender: field as requested earlier.  Also add

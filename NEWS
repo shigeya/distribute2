@@ -1,0 +1,41 @@
+What's new in this release
+
+
+
+Mon Apr 12 13:45:01 1993		Shigeya Suzuki
+
+** default path
+
+	If the -L/-I option's accompanied filename is not absolute path,
+	compiled-in default path is attached in front of filename.
+	edit Makefile for this.
+
+** -M/-N options for easy administration
+
+	-M/-N simplify the lines in alias file. For example, in alias file:
+
+	>>>>
+	disttest-request: shigeya
+	disttest:       "|/usr/lib/distribute -M disttest"
+	owner-disttest: shigeya
+	<<<<
+
+	-M is same as:
+		-e -a disttest -r disttest -I disttest.seq -L disttest.rec
+
+	-N is same as:
+		-e -a disttest -I disttest.seq -L disttest.rec
+
+	Note ".seq" and ".rec" suffixes added. 
+	".seq" and ".rec" are compile time configuration option (see Makefile)
+
+
+** Limit of argument passed to sendmail
+
+	With -L option, there was limit of about 10K bytes for
+	space separated recipient list. We removed this restriction,
+	but you may have trouble if your OS does not support more than
+	10K of argument list. (check NCARGS in sys/params.h, etc.)
+
+	In SunOS, the max number of characters for argument list is
+	1M bytes, so no problem.
