@@ -12,12 +12,16 @@
 #endif
 
 #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 #include <sysexits.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/param.h>
+
+#include "cdefs.h"
 
 #ifdef SVR4
 #define	rindex	strrchr
@@ -34,7 +38,7 @@
 #include "history.h"
 #include "pathutil.h"
 #include "header.h"
-
+#include "logging.h"
 
 char *progname;
 
@@ -57,6 +61,10 @@ char *index_name = DEF_INDEX_NAME;
 int majordomo = 0;
 int zaprecv = 0;
 int useindex = 0;
+
+/* Forward Declaration
+ */
+void usage __P((void));
 
 
 /* Option parser
@@ -117,7 +125,7 @@ parse_options(argc, argv)
 }
 
 
-int
+void
 parse_header(file)
     FILE *file;
 {
@@ -213,6 +221,7 @@ parse_sequence(sequence, ml_n, ml_c, mlseq)
 
 /* doarchive -- archive the mail
  */
+void
 doarchive()
 {
     char buf[BUFSIZ];	/* string buffer */
@@ -280,6 +289,7 @@ doarchive()
 
 /* Finally, the Main Entry
  */
+int
 main(argc, argv)
     int argc;
     char ** argv;
@@ -294,9 +304,10 @@ main(argc, argv)
     doarchive();
 
     loginfo("\"%s\" archived as %s", subject, filename);
-    exit(0);
+    return 0; /*exit(0);*/
 }
 
+void
 usage()
 {
     fprintf(stderr, "usage: %s ", progname);

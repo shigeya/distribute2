@@ -12,6 +12,10 @@
 #include <sys/types.h>
 #include <sysexits.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "logging.h"
+#include "memory.h"
 
 /* allocate or fail
  */

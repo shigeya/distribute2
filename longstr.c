@@ -18,6 +18,8 @@
 #include <sys/types.h>
 #include <sys/param.h>
 
+#include "logging.h"
+
 #include <limits.h>
 #ifndef NCARGS
 #ifdef _POSIX_ARG_MAX

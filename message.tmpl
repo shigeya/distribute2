@@ -41,12 +41,15 @@ jp	badheader_jp	euc_to_iso2022jp
 ############################################################# administrative
 
 @ administrative_us
-To: %M
+To: %O
 From: The Distribute Mailinglist Handler <%M>
 Subject: Distribute: got administrative message
 
 Following article for mailing list "%L" has been rejected
-because it seems to be a add me/remove me letter.
+because it seems to be a add me/remove me request.
+
+Distribute does not work such way. Please request to
+<%M> for assistance.
 
 Please check it.
 
@@ -56,15 +59,18 @@ distribute -- Your mailing list handler.
 @
 
 @ administrative_jp
-To: %M
+To: %O
+Cc: %M
 From: The Distribute Mailinglist Handler <%M>
 Subject: Distribute: got administrative message
 
 以下の "%L"メーリングリスト向けメッセージは、"add" "remove"
-などといったメンテナンス用キーワードを含んでいるため、
+"# help" などといったメンテナンス用キーワードを含んでいるため、
 メーリングリストに送られませんでした。
 
-内容をご確認願います。
+登録方法等をご確認ください。
+不明の場合は <%M> 宛にお問い合わせください。
+
 
 "%L" 管理人代理 distribute
 

@@ -32,6 +32,7 @@
 			header in the header vector.
 */
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 #include <sysexits.h>

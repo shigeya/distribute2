@@ -5,8 +5,9 @@
 # See CREDITS for credit and COPYRIGHT for copyright notice.
 #
 RCONFIG=-DRELEASESTATE=\"Alpha\"
+#PURIFY=purify
+#PURIFYOPTS=-mail-to-user=shigeya -cache-dir=/var/tmp/distribute
 
-#
 # Configuration options:
 #
 # Available options:
@@ -68,10 +69,11 @@ OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION \
 DESTDIR=
 #
 CFLAGS=	-g ${OPTIONS} ${DEFAULTCONFIG} ${RCONFIG}
+# -Wall
 
 LIBS=
 MAKE=	make
-CC= 	gcc
+CC= 	${PURIFY} ${PURIFYOPTS} cc 
 
 WHERE=	/usr/local/libexec
 MANDIR=	/usr/local/man
@@ -111,7 +113,7 @@ MISCSRC=	ChangeLog README README.FIRST NEWS \
 KITFILES=	${SRCS} ${HDRS} ${MISCSRC}
 
 LIBOBJS=	memory.o history.o pathutil.o strutil.o header.o logging.o \
-		longstr.o
+		longstr.o strsep.o
 
 DOBJS=		distribute.o recipfile.o message.o ${LIBOBJS}
 

@@ -18,6 +18,7 @@
 #include <ctype.h>
 #include "config.h"
 #include "memory.h"
+#include "logging.h"
 #include "pathutil.h"
 
 #ifdef SVR4

@@ -21,10 +21,12 @@
 #include <sys/file.h>
 #include <sysexits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "memory.h"
 #include "history.h"
+#include "logging.h"
 
 /* globals
  */

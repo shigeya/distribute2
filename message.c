@@ -5,9 +5,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "message.h"
 #include "longstr.h"
+#include "logging.h"
 
 #ifdef TEST
 #define	host		"<host>"

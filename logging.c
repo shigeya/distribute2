@@ -2,12 +2,19 @@
  *
  * Logging and error handling for distribute+archive
  *
- * Shigeya Suzuki, Dec 1993
- * Copyright(c)1993 Shigeya Suzuki
+ * Shigeya Suzuki, Dec 1993, October 1997
+ * Copyright(c)1993-1997 Shigeya Suzuki
  */
 
 #include <stdio.h>
 #include <sysexits.h>
+#include <stdlib.h>
+
+#ifdef __STDC__
+#include <stdarg.h>
+#endif
+
+#include "cdefs.h"
 
 #ifdef TEST
 #undef SYSLOG
@@ -17,19 +24,21 @@
 # include <syslog.h>
 #endif
 
-/* We don't make prototype for this.
- * because we don't want to rely on ANSI C at this moment..
- */
+#define LOGBUFSIZE	1024
+
+#include "logging.h"
+#include "memory.h"
 
 /* Global
  */
 static int print_error = 0;
-
+static char* logbuf = NULL;
 
 /* Initialization
  */
+void
 init_log(tag)
-    char *tag;
+    char* tag;
 {
 #ifdef SYSLOG	
     openlog(tag, LOG_PID, SYSLOG_FACILITY);
@@ -45,11 +54,13 @@ init_log(tag)
     fprintf(debuglog, "invoked: pid=%d\n", getpid());
     fflush(debuglog);
 #endif
+    logbuf = xmalloc(LOGBUFSIZE);
 }
 
 
 /* Toggle print error mode
  */
+void
 logging_setprinterror(flag)
     int flag;
 {
@@ -59,70 +70,144 @@ logging_setprinterror(flag)
 
 /* Several error handler
  */
-/*VARARGS1*/
+
+void
+logerror_buf(prefix)
+    char* prefix;
+{
+#ifdef SYSLOG
+    syslog(LOG_ERR, logbuf);
+#endif
+    if (print_error) {
+	if (prefix != NULL)
+	    fputs(prefix, stderr);
+	fputs(logbuf, stderr);
+	fputc('\n', stderr);
+    }
+}
+
+
+#ifdef __STDC__
+
+void
+logerror(char* fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsprintf(logbuf, fmt, ap);	/* vsnprintf is available everywhere?? */
+    va_end(ap);
+    logerror_buf("Error: ");
+}
+
+#else
+
+void
 logerror(fmt, a1, a2)
-    char *fmt;
-    char *a1, *a2;
+    char* fmt;
+    char* a1;
+    char* a2;
 {
-#ifdef SYSLOG
-    syslog(LOG_ERR, fmt, a1, a2);
-#endif
-    if (print_error) {
-	fputs("Error: ", stderr);
-	fprintf(stderr, fmt, a1, a2);
-	fputc('\n', stderr);
-    }
+    sprintf(logbuf, fmt, a1, a2);
+    logerror_buf("Error: ");
 }
 
+#endif
 
-/*VARARGS1*/
+
+#ifdef __STDC__
+
+void
+logwarn(char* fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsprintf(logbuf, fmt, ap);	/* vsnprintf is available everywhere?? */
+    va_end(ap);
+    logerror_buf("Warning: ");
+}
+
+#else
+
+void
 logwarn(fmt, a1, a2)
-    char *fmt;
-    char *a1, *a2;
+    char* fmt;
+    char* a1;
+    char* a2;
 {
-#ifdef SYSLOG
-    syslog(LOG_WARNING, fmt, a1, a2);
-#endif
-    if (print_error) {
-	fputs("Warning: ", stderr);
-	fprintf(stderr, fmt, a1, a2);
-	fputc('\n', stderr);
-    }
+    sprintf(logbuf, fmt, a1, a2);
+    logerror_buf("Warning: ");
 }
 
-/*VARARGS1*/
-loginfo(fmt, a1, a2)
-    char *fmt;
-    char *a1, *a2;
-{
-#ifdef SYSLOG
-    syslog(LOG_INFO, fmt, a1, a2);
 #endif
-    if (print_error) {
-	fputs("Info: ", stderr);
-	fprintf(stderr, fmt, a1, a2);
-	fputc('\n', stderr);
-    }
+
+
+#ifdef __STDC__
+
+void
+loginfo(char* fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsprintf(logbuf, fmt, ap);
+    va_end(ap);
+    logerror_buf("Info: ");
 }
+
+#else
+
+void loginfo(fmt, a1, a2)
+    char* fmt;
+    char* a1;
+    char* a2;
+{
+    sprintf(logbuf, fmt, a1, a2);
+    logerror_buf("Info: ");
+}
+
+#endif
+
+
+/* log it then exit with error code
+ */
+
+#ifdef __STDC__
+void
+logandexit(int exitcode, char* fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vsprintf(logbuf, fmt, ap);	/* vsnprintf is available everywhere?? */
+    va_end(ap);
+
+    logerror_buf(NULL);
+
+    exit(exitcode);
+}
+
+#else
+
+void
+logandexit(exitcode, fmt, a1, a2)
+    int exitcode;
+    char* fmt;
+    char* a1;
+    char* a2;
+{
+    sprintf(logbuf, fmt, a1, a2);
+    logerror_buf(NULL);
+    exit(exitcode);
+}
+
+#endif
+
 
 
 
 /* Abort with program error
  */
+void
 programerror()
 {
     logandexit(EX_UNAVAILABLE, "program error");
 }
 
-
-/* log it then exit with error code
- */
-/*VARARGS2*/
-logandexit(exitcode, fmt, a1, a2)
-    int exitcode;
-    char *fmt;
-    char *a1, *a2;
-{
-    logerror(fmt, a1, a2);
-    exit(exitcode);
-}

@@ -27,13 +27,14 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
 #ifdef SVR4
 #include <netdb.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "sysexits.h"
+#include <sysexits.h>
 #include <sys/systeminfo.h>
 #else
 #include <sysexits.h>
@@ -60,6 +61,7 @@
 #include "config.h"
 
 #include "longstr.h"
+#include "logging.h"
 #include "memory.h"
 #include "message.h"
 #include "recipfile.h"
@@ -153,6 +155,7 @@ int majordomo = 0;	/* is NOT majordomo mode in default */
 int useowner = 0;	/* use owner instead of request for sender */
 int xsequence = 0;	/* add x-sequence header */
 int addoriginator = 0;	/* add originator field */
+int accept_error = 0;	/* not on accept list */
 char *newstrim = NULL;	/* trim news header */
 char openc, closec;
 char *precedence = NULL;
@@ -186,6 +189,11 @@ static int ccmail_error_message = 0;
 #define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:P:C:n:Y:Z:RsdDeijVAXoOqtx"
 
 
+/* Forward Declarations
+ */
+void cleanheader __P((int headc, char** headv));
+void write_index __P((void));
+
 /*
  * Check to see if a message appears to be an administrative one,
  * (e.g., an add-me or delete-me message).  Returns 0 if it's not,
@@ -208,6 +216,8 @@ checkadmin(infile, newfile)
     int mail_word = 0;
     int hml_noise = 0;
     int count = 0;
+    int crcount = 0;
+    int subscribe = 0;
     int c;
     char word[128];
     
@@ -220,30 +230,34 @@ checkadmin(infile, newfile)
     for (p = word ; (c = getc(infile)) != EOF; ) {
 	putc(c, *newfile);
 
-#if 0
 	last_cr = c == '\n';
+	if (last_cr)
+	    crcount++;
+
 	pound_start = last_cr && c == '#';
-#endif
 
 	if (!isalpha(c)) {
 	    *p = '\0';
 	    if (p > word)
 		count++;
 	    p = word;
+
+	    if (EQ(word, "subscribe"))
+		subscribe++;
 	    
-#if 0
-	    if (EQ(word, "# help") || EQ(word, "# db get") ||
-		EQ(word, "# db list") || 
+	    if (pound_start &&
+		(EQ(word, "# help") || EQ(word, "# db get") ||
+		 EQ(word, "# db list"))) {
 		hml_noise++;
-#endif
-	    if (EQ(word, "remove") || EQ(word, "drop") ||
-		EQ(word, "off") || EQ(word, "subscribe") ||
+	    }
+	    else if (EQ(word, "remove") || EQ(word, "drop") ||
+		EQ(word, "off") || subscribe ||
 		EQ(word, "get") || EQ(word, "add"))
 		drop_or_add++;
 	    else if (EQ(word, "from") || EQ(word, "to"))
 		from_or_to++;
 	    else if (EQ(word, "mail") || EQ(word, "mailing") ||
-		     EQ(word, "list") || EQ(word, "dl"))
+		     EQ(word, "list"))
 		mail_word++;
 	}
 	else if (p < &word[sizeof word - 1])
@@ -252,7 +266,9 @@ checkadmin(infile, newfile)
     rewind(*newfile);
     
     /* Use fancy-shmancy AI techniques to determine what the message is. */
-    return(count < 25 && drop_or_add && from_or_to && mail_word);
+    return (count < 40 && crcount < 5 &&
+	   ((drop_or_add && from_or_to && mail_word) || hml_noise))
+	|| (count < 15 && crcount < 5 && subscribe);
 }
 
 /* Long argument handling
@@ -369,6 +385,7 @@ usage()
     fprintf(stderr, "\t[-ADKORVXdeijnosxt] {-L recip-addr-file | recip-addr ...}\n");
 }
 
+void
 printversion()
 {
     fprintf(stderr, "distribute version %s ", versionID);
@@ -848,6 +865,79 @@ prepare_arguments(argc, argv)
      * tacked on.
      */
     
+    /* Read-in all recipient files
+     */
+    if (acceptfile != NULL) {
+	acceptbuf = parserecipfile(acceptfile, 0);
+    }
+    if (recipfile != NULL) {
+	recipientbuf = parserecipfile(recipfile, 1);
+    }
+    if (rejectfile != NULL) {
+	rejectbuf = parserecipfile(rejectfile, 0);
+    }
+
+#ifdef CCMAIL
+    if (strcmp(subject, "cc:Mail SMTPLINK Undeliverable Message") == 0
+	||strcmp(subject, "Message not deliverable") == 0
+	|| strcmp(subject, "Unsent Message Returned to Sender") == 0) {
+
+	ccmail_error_message = 1;
+    }
+#endif
+
+    /* read and add recipient list if exits
+     */
+    if (acceptcheck(acceptbuf, originator) == 0) {
+	accept_error = 1;
+    }
+    
+    /*
+     * Simple check that the header fields aren't grossly
+     * mismatched in terms of parens and angle-brackets.
+     */
+    for (i=0; i<headc; i++) {
+	if (headv[i] != NULL)
+	{
+	    extern char* checkhdr();
+	    
+	    if ((headererr = checkhdr(headv[i])) != NULL) {
+		badhdr++;
+		break;
+	    }
+	}
+    }
+    
+    /*
+     * Give the command its input.
+     * Deal with being smart about add-me mail here.
+     */
+    if (lessnoise) {
+	wasadmin = checkadmin(stdin, &noisef);
+    }
+
+    /* Reject hack */
+    {
+	char *from, *rejaddr;
+	char addrbuf[MAXADDRLEN];
+
+	strcpy(addrbuf,
+	       head_find(headc, headv, "From:") + sizeof("From:") - 1);
+	from = normalizeaddr(addrbuf);
+    
+	while ((rejaddr = (char *)strsep(&rejectbuf, " ")) != NULL) {
+	    int rejlen = strlen(rejaddr);
+	    if (!strncasecmp(from, rejaddr, rejlen) ||
+		!strncasecmp(originator, rejaddr, rejlen)) {
+		wasrejected = 1;
+		break;
+	    }
+	}
+    }
+
+    /* Now build sendmail command from recipient lists..
+     */
+
     argreset();
     
 #ifdef OLD_ARCHIVE
@@ -880,128 +970,47 @@ prepare_arguments(argc, argv)
 	}
     }
 #endif
-    
+
     argappend(_PATH_SENDMAIL);
     argappend(" ");
+
     if (sendmailargs != NULL)
 	argappend(sendmailargs);
+
     argappend(" -f");
     argappend(dommaintainer);
+    argappend(" ");
     
-#ifdef CCMAIL
-	if (strcmp(subject, "cc:Mail SMTPLINK Undeliverable Message") == 0
-	    ||strcmp(subject, "Message not deliverable") == 0
-	    || strcmp(subject, "Unsent Message Returned to Sender") == 0) {
-		ccmail_error_message = 1;
-		argappend(" ");
-		argappend(originator);
-		argappend(" ");
-		argappend(dommaintainer);
-	} else {
-#endif
-
-
-    /* read and add recipient list if exits
-     */
-    if (recipfile != NULL) {
-	recipientbuf = parserecipfile(recipfile, 1);
-    }
-
-    if (recipientbuf != NULL) {
-	argappend(" ");
-	argappend(recipientbuf);
-    }
-    
-    if (acceptfile != NULL) {
-	acceptbuf = parserecipfile(acceptfile, 0);
-    }
-    
-    if (rejectfile != NULL) {
-	rejectbuf = parserecipfile(rejectfile, 0);
-    }
-
-    for (i = optind ; i < argc ; i++)
-    {
-	argappend(" ");
-	argappend(argv[i]);
-    }
-#ifdef CCMAIL
-    }
-#endif
-
-    
-    /*
-     * Simple check that the header fields aren't grossly
-     * mismatched in terms of parens and angle-brackets.
-     */
-    for (i=0; i<headc; i++) {
-	if (headv[i] != NULL)
-	{
-	    extern char* checkhdr();
-	    
-	    if ((headererr = checkhdr(headv[i])) != NULL) {
-		argreset();
-		if (senderaddr != NULL) {
-		    argappend(_PATH_SENDMAIL);
-		    argappend(" -f");
-		    argappend(senderaddr);
-		    argappend(" ");
-		    argappend(senderaddr);
-		}
-		else {
-		    argappend(_PATH_SENDMAIL);
-		    argappend(" -f");
-		    argappend(dommaintainer);
-		    argappend(" ");
-		    argappend(dommaintainer);
-		}
-		
-		badhdr++;
-		break;
-	    }
+    /* only to maintainer */    
+    if (badnewsheader || badoriginator || ccmail_error_message) {
+	if (senderaddr != NULL) {
+	    argappend(senderaddr);
 	}
-    }
-    
-    /*
-     * Give the command its input.
-     * Deal with being smart about add-me mail here.
-     */
-    if (lessnoise) {
-	if (wasadmin = checkadmin(stdin, &noisef)) {
-	    argreset();
-	    if (senderaddr != NULL) {
-		argappend(_PATH_SENDMAIL);
-		argappend(" -f");
-		argappend(senderaddr);
-		argappend(" ");
-		argappend(senderaddr);
-	    }
-	    else {
-		argappend(_PATH_SENDMAIL);
-		argappend(" -f");
-		argappend(maintainer);
-		argappend(" ");
-		argappend(maintainer);
-	    }
+	else {
+	    argappend(dommaintainer);
 	}
     }
 
-    /* Reject hack */
-    {
-	char *from, *rejaddr;
-	char addrbuf[MAXADDRLEN];
+    /* originator + maintainer */
+    else if (badhdr || accept_error || wasrejected || wasadmin) {
+	if (senderaddr != NULL) {
+	    argappend(senderaddr);
+	}
+	else {
+	    argappend(dommaintainer);
+	}
+	argappend(" ");
+	argappend(originator);
+    }
 
-	strcpy(addrbuf,
-	       head_find(headc, headv, "From:") + sizeof("From:") - 1);
-	from = normalizeaddr(addrbuf);
-    
-	while (rejaddr = (char *)strsep(&rejectbuf, " ")) {
-	    int rejlen = strlen(rejaddr);
-	    if (!strncasecmp(from, rejaddr, rejlen) ||
-		!strncasecmp(originator, rejaddr, rejlen)) {
-		wasrejected = 1;
-		break;
-	    }
+    /* If no error, append regular recipients */
+    else {
+	if (recipientbuf != NULL) {
+	    argappend(recipientbuf);
+	}
+
+	for (i = optind ; i < argc ; i++) {
+	    argappend(argv[i]);
 	}
     }
 }
@@ -1041,6 +1050,7 @@ acceptcheck(buf, pat)
  * identifier in header.
  */
 #if defined(ISSUE)
+void
 AddAliasIDToHeader(pipe, aliasid, issuenum)
     FILE *pipe;
     char *aliasid;
@@ -1071,6 +1081,7 @@ AddAliasIDToHeader(pipe, aliasid, issuenum)
  * subject, alias ID and issue number (if needed)
  */
 #if defined(ISSUE)
+void
 AddAliasIDToSubject(subjectbuf, subject, aliasid, issuenum)
     char *subjectbuf;
     char *subject;
@@ -1204,7 +1215,7 @@ send_message()
 	logwarn("Unsent message: Administrative message. Forwarded to %s",
 		dommaintainer);
 	reject = 1;
-    } else if (acceptcheck(acceptbuf, originator) == 0) {
+    } else if (accept_error) {
 	messageprint(pipe, notallowed, dommaintainer);
 	logwarn("Unsent message: Can't accept message from %s. Bounce to %s also",
 		originator, dommaintainer);
@@ -1214,8 +1225,7 @@ send_message()
 	logwarn("Unsent message: Rejected message from %s. Forwarded to %s",
 		originator, dommaintainer);
 	reject = 1;
-    }
-    else if (badoriginator) {
+    } else if (badoriginator) {
 	messageprint(pipe, badoriginator, dommaintainer);
 	logwarn("Unsent message: Originator address invalid. Forwarded to %s",
 		dommaintainer);
@@ -1372,6 +1382,7 @@ send_message()
 }
 
 
+void
 cleanheader(headc, headv)
     int headc;
     char **headv;
@@ -1579,6 +1590,7 @@ checkhdr(s)
 
 /* Write index file to archive directory
  */
+void
 write_index()
 {
     /* write history now. If issuenum == 0, it's error so don't write index.
@@ -1604,6 +1616,7 @@ write_index()
 
 /* Finally, the Main Entry
  */
+int
 main(argc, argv)
     int argc;
     char ** argv;
@@ -1621,5 +1634,5 @@ main(argc, argv)
 
     loginfo("\"%s\" sent", subjectbuf);
 
-    exit(0);
+    return 0;	/* exit(0) */;
 }
