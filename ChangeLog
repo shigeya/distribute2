@@ -1,3 +1,15 @@
+Sat Aug  7 15:46:29 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* Patchlevel=6 FIX
+
+	* Majordomo を使う場合に、group id の関係で recipient file を分け
+	  る必要があったので、-j フラグによって、別ディレクトリを指定出来
+	  るようにした。-j は -M や -N より前になければならない。
+
+Sun Jul 25 16:02:10 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
+
+	* Recipient file のパーシングをもうすこし賢く行うようにした。
+
 Wed Jun 16 13:40:26 1993  Shigeya Suzuki  (shigeya at dink.foretune.co.jp)
 
 	* AddAliasIDToSubject/AddAliasIDToHeader各関数を作成し、mainからそ

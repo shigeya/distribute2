@@ -54,6 +54,10 @@ int patchlevel = PATCHLEVEL;
 # define DEF_RECIPIENT_PATH	"/usr/lib/mail-list"
 #endif
 
+#ifndef DEF_MAJORDOMO_RECIPIENT_PATH
+# define DEF_MAJORDOMO_RECIPIENT_PATH "/usr/lib/mail-list/majordomo/lists"
+#endif
+
 #ifndef DEF_SEQ_SUFFIX
 # define DEF_SEQ_SUFFIX		".seq"
 #endif
@@ -90,6 +94,9 @@ extern	char * tmpnam();
 extern	char * index();
 extern	char * rindex();
 
+extern char * parserecipfile();
+
+
 char *progname;
 
 struct longstr cmdbuf;
@@ -102,6 +109,7 @@ FILE* debuglog;
  */
 char *seq_path = DEF_SEQ_PATH;
 char *recipient_path = DEF_RECIPIENT_PATH;
+char *majordomo_recipient_path = DEF_MAJORDOMO_RECIPIENT_PATH;
 
 char *seq_suffix = DEF_SEQ_SUFFIX;
 char *recipient_suffix = DEF_RECIPIENT_SUFFIX;
@@ -117,7 +125,7 @@ char closealiaschar = DEF_CLOSEALIAS_CHAR;
 #define EQ(a, b) (strcasecmp((a), (b)) == 0)
 
 
-#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:RsdeiVA"
+#define	GETOPT_PATTERN	"M:N:B:h:f:l:H:F:m:v:I:r:a:L:RsdeijVA"
 
 void
 usage() {
@@ -132,7 +140,7 @@ usage() {
     fprintf(stderr, " [-a aliasid] [-B brace_lr]");
 #endif
     fprintf(stderr, "\n");
-    fprintf(stderr, "	[-RsdeiVA] [-m sendmail-flags]\n");
+    fprintf(stderr, "	[-RsdeijVA] [-m sendmail-flags]\n");
     fprintf(stderr, "	{-L recip-addr-file | recip-addr ...}\n");
 }
 
@@ -172,6 +180,7 @@ printversion()
 #endif
     fprintf(stderr, "\tRecipient file default path: %s\n", DEF_RECIPIENT_PATH);
     fprintf(stderr, "\tSequence file default path:  %s\n", DEF_SEQ_PATH);
+    fprintf(stderr, "\tMajordomo recipient file default path:  %s\n", DEF_MAJORDOMO_RECIPIENT_PATH);
 
     exit(0);
 }
@@ -533,12 +542,14 @@ char ** argv;
 	int lessnoise = 0;	/* run ``please add/delete me'' filter */
 	int errorsto = 0;
 	int forcereplyto = 0;	/* ignore reply to */
+	int majordomo = 0;	/* is NOT majordomo mode in default */
 	char *originatorreplyto = NULL;
 	int c;
 	char openc, closec;
 	extern char *optarg;
 	extern int optind;
 	int optionerror = 0;
+	char *recipientbuf;
 	
 #ifdef SYSLOG	
 	openlog("distribute", LOG_PID, SYSLOG_FACILITY);
@@ -587,8 +598,12 @@ char ** argv;
 		    list = optarg;
 		    issuefile = adddefaultpath(seq_path, optarg,
 					       seq_suffix);
-		    recipfile = adddefaultpath(recipient_path, optarg,
-					       recipient_suffix);
+		    if (majordomo)
+			recipfile = adddefaultpath(majordomo_recipient_path,
+						   optarg,"");
+		    else
+			recipfile = adddefaultpath(recipient_path, optarg,
+						   recipient_suffix);
 		    break;
 
 		case 'N':	/* generic maillinglist without reply-to */
@@ -597,10 +612,18 @@ char ** argv;
 		    list = optarg;
 		    issuefile = adddefaultpath(seq_path, optarg,
 					       seq_suffix);
-		    recipfile = adddefaultpath(recipient_path, optarg,
-					       recipient_suffix);
+		    if (majordomo)
+			recipfile = adddefaultpath(majordomo_recipient_path,
+						   optarg,"");
+		    else
+			recipfile = adddefaultpath(recipient_path, optarg,
+						   recipient_suffix);
 		    break;
 
+		case 'j':	/* MAJORDOMO style recipient file path*/
+		    majordomo++;
+		    break;
+		    
 		case 'B':	/* brace def */
 		    if (getaliaschar(&openc, &closec, optarg)) {
 			openaliaschar = openc;
@@ -710,12 +733,8 @@ char ** argv;
 	}
 
 	if (recipfile != NULL) {
-	    if ((recipf = fopen(recipfile, "r")) == NULL) {
-		logandexit(EX_NOINPUT,
-			"can't open receipt address file '%s'\n", recipfile);
-	    }
+	    recipientbuf = parserecipfile(recipfile);
 	}
-
 
 
 	/*
@@ -786,19 +805,13 @@ char ** argv;
 		argappend(list);
 		argappend("-request");
 	}
-	if (recipf != NULL) {
-		while (fgets(buf, sizeof buf, recipf) != NULL) {
-			register char *p;
 
-			if ((p = index(buf, '\n')) != NULL)
-				*p = '\0';
-			if (buf[0] == '\0' || buf[0] == '#')
-				continue;
-
-			argappend(" ");
-			argappend(buf);
-		}
+	/* add recipients */
+	if (recipientbuf != NULL) {
+	    argappend(" ");
+	    argappend(recipientbuf);
 	}
+
 	for (i = optind ; i < argc ; i++)
 	{
 		argappend(" ");

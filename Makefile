@@ -7,7 +7,7 @@
 # Modified by: shin@u-tokyo.ac.jp, toku@dit.co.jp, shigeya@foretune.co.jp
 #		and hiro@is.s.u-tokyo.ac.jp
 #
-RCONFIG=-DRELEASESTATE=\"Alpha/Exp\"
+RCONFIG=-DRELEASESTATE=\"Alpha\"
 
 #
 # Available options:
@@ -38,6 +38,10 @@ OPTIONS= -DSYSLOG -DISSUE -DSUBJALIAS -DADDVERSION -DSYSLOG_FACILITY=LOG_LOCAL4
 # DEF_RECIPIENT_PATH	-- default path to directory which holds
 # [default:		   recipient list files.
 #   /usr/lib/mail-list]
+#
+# DEF_MAJORDOMO_RECIPIENT_PATH-- default path to majordomo "lists" directory
+# [default:		   recipient file in majordomo style.
+#   /usr/lib/mail-list/majordomo/lists]
 #
 # DEF_SEQ_SUFFIX	-- default suffix for sequence files.
 # [default: .seq]
@@ -80,7 +84,7 @@ MISCSRC=	ChangeLog README README.FIRST NEWS \
 
 KITFILES=	${SRCS} ${HDRS} ${MISCSRC}
 
-OBJS=		distribute.o header.o longstr.o
+OBJS=		distribute.o header.o longstr.o parserecipfile.o
 
 all: distribute
 
@@ -112,6 +116,8 @@ test.x:	testlongstr.o longstr.o
 test:	test.x
 	./test.x | perl resultcheck.pl
 
+prtest: parserecipfile.c
+	cc -DTEST -g -o prtest parserecipfile.c longstr.o
 
 ###
 distribute.o:	distribute.c Makefile patchlevel.h longstr.h

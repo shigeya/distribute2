@@ -1,0 +1,9 @@
+# $Id$
+# Test file for parse recipient
+Shigeya Suzuki <shigeya@foretune.co.jp>
+shigeya@foretune.co.jp (Shigeya Suzuki)
+Shigeya "too busy" Suzuki <shigeya@foretune.co.jp>
+"Shigeya 'too busy' Suzuki" <shigeya@foretune.co.jp>
+shigeya@foretune.co.jp (Shigeya "too busy" Suzuki)
+shigeya@foretune.co.jp (Shigeya 'too busy' Suzuki)
+":users 1"@foretune.co.jp
