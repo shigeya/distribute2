@@ -1,3 +1,30 @@
+2002-05-30  Shigeya Suzuki  <shigeya@shigeya.org>
+
+	* raising patchlevel to 28 beta.
+
+	* distribute.c (checkadmin): use mkstemp instead of tmpnam.
+
+	* configure.in (USE_NETDB_H): if can't find MAXHOTSNAMELEN, use
+	  1024 as default value.
+
+	* distribute.c (send_message): "\n.\n" case handling patch from
+	  akiyan@omnisci.co.jp (Actually, I got several of them, thanks)
+
+	* autoconf ran
+
+1999-05-26  Shigeya Suzuki  <shigeya@malor.foretune.co.jp>
+
+	* distribute.c (MIME_makeSubj): correct support for cases on 1) the
+	  header part is ended with EOL, 2) header ends with empty line.
+	  (from <y-koga@isoternet.org>)
+
+	* -c option copies AFTER command line parsing.
+
+1999-05-10  Shigeya Suzuki  <shigeya@malor.foretune.co.jp>
+
+	* distribute.c (prepare_arguments): Now run acceptcheck both
+	  against 'sender' and 'from'.
+
 1999-05-09  Shigeya Suzuki  <shigeya@malor.foretune.co.jp>
 	* patchlevel 26e
 	

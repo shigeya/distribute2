@@ -8,17 +8,18 @@
  *
  * Modified portions Copyright (c) 1990-1999 by Shigeya Suzuki,
  * Shin Yoshimura, Yoshitaka Tokugawa, Hiroaki Takada and
- * Susumu Sano, Yoichirou Koga and other contributors.
+ * Susumu Sano, Yoichirou Koga, Junichiro Hagino and other contributors.
  *
  * Permission is granted to use, but not for sell.
  *
  *
- *	Shin Yoshimura		<shin@wide.ad.jp>
- *	Yoshitaka Tokugawa	<toku@wide.ad.jp>
- *	Shigeya Suzuki		<shigeya@foretune.co.jp>
- *	Hiroaki Takada		<hiro@is.s.u-tokyo.ac.jp>
- *      Susumu Sano 		<sano@wide.ad.jp>
- *	Youichirou Koga		<y-koga@isoternet.org>
+ *	Shin Yoshimura			<shin@wide.ad.jp>
+ *	Yoshitaka Tokugawa		<toku@wide.ad.jp>
+ *	Shigeya Suzuki			<shigeya@foretune.co.jp>
+ *	Hiroaki Takada			<hiro@is.s.u-tokyo.ac.jp>
+ *      Susumu Sano 			<sano@wide.ad.jp>
+ *	Youichirou Koga			<y-koga@isoternet.org>
+ *      Junichiro 'itojun' Hagino	<itojun@itojun.org>
  */
 
 #include <config.h>
@@ -182,40 +183,41 @@ int mailer_uid, mailer_gid;
 
 FILE *noisef = NULL;
 
-int errorsto = 0;	/* append Erros-To? or not */
+int errorsto = 0;		 /* append Erros-To? or not */
 
 #ifdef USE_ISSUE
-int issuenum = -1;	/* issue number  */
+int issuenum = -1;		 /* issue number  */
 #endif
 
 #ifdef ADDVERSION
-int addversion = 1;	/* Add X-Distribute: header or not (default TRUE) */
+int addversion = 1;		 /* Add X-Distribute: header or not */
 #endif
 
 #ifdef USE_MIMEKIT
-int usemimekit = 1;	/* use mimekit (default*) */
+int usemimekit = 1;		 /* use mimekit (default ON) */
 #endif
 
-int badhdr = 0;		/* something is fishy about the header */
-int wasadmin = 0;	/* was a noise message */
-int wasrejected = 0;	/* rejected message */
-int badnewsheader = 0;	/* incoming article is not likely news2mail article */
-int badoriginator = 0;  /* origintor address invalid */
-int ccmail_error_message = 0;	/* it's ccmail error message */
-int zaprecv = 0;	/* zap received lines */
-int lessnoise = 0;	/* run ``please add/delete me'' filter */
-int forcereplyto = 0;	/* ignore reply to */
-int majordomo = 0;	/* is NOT majordomo mode in default */
-int useowner = 0;	/* use owner instead of request for sender */
-int xsequence = 0;	/* add x-sequence header */
-int addoriginator = 0;	/* add originator field */
-int accept_error = 0;	/* not on accept list */
-char *newstrim = NULL;	/* trim news header */
-char openc, closec;
-char *precedence = NULL;
-int debug = 0;
-int tersemode = 0;
-int writeindex = 0;
+int badhdr = 0;			 /* something is fishy about the header */
+int wasadmin = 0;		 /* was a noise message */
+int wasrejected = 0;		 /* rejected message */
+int badnewsheader = 0;		 /* incoming msg isn't like news2mail article*/
+int badoriginator = 0;		 /* origintor address invalid */
+int ccmail_error_message = 0;	 /* it's ccmail error message */
+int zaprecv = 0;		 /* zap received lines */
+int lessnoise = 0;		 /* run ``please add/delete me'' filter */
+int forcereplyto = 0;		 /* ignore reply to */
+int majordomo = 0;		 /* is NOT majordomo mode in default */
+int useowner = 0;		 /* use owner instead of request for sender */
+int xsequence = 0;		 /* add x-sequence header */
+int addoriginator = 0;		 /* add originator field */
+int accept_error = 0;		 /* not on accept list */
+char *newstrim = NULL;		 /* trim news header */
+char openc, closec;		 /* open/close bracket charcter */
+char *precedence = NULL;	 /* precedensce value */
+int debug = 0;			 /* debug flag */
+int tersemode = 0;		 /* terse mode */
+int writeindex = 0;		 /* write index */
+int copyacceptfile = 0;		 /* copy recipient list to acceptlist*/
 
 char *aliasid = NULL;		 /*  */
 char *replyto = NULL;
@@ -278,9 +280,16 @@ checkadmin(infile, newfile)
 #define MIN_LINES	10
 #define MIN_WORDS	20
 #define MIN_CHARS	100
-#define ISWSP(x)	((x == ' ') || (x == '\t') || (x == '\n'))
+#define ISWSP(x)	((x == ' ') || (x == '\t'))
 
+#ifdef HAVE_MKSTEMP
+    char tmpnamebuf[MAXPATHLEN];
+    strcpy(tmpnamebuf, "adminXXXXXX");
+    mkstemp(tmpnamebuf);
+    s = tmpnamebuf;
+#else
     s = tmpnam((char *) NULL);
+#endif
     if ((*newfile = fopen(s, "w+")) == NULL) {
 	perror("can't get temp file");
 	return(0);	/* better safe than sorry */
@@ -300,7 +309,7 @@ checkadmin(infile, newfile)
 	    crcount++;
 
 	if (last_cr) {
-	    while (ISWSP(c) || (c == '#')) {
+	    while (ISWSP(c) || (c == '\n') || (c == '#')) {
 		if ((c = getc(infile)) == EOF)
 		    break;
 		putc(c, *newfile);
@@ -310,7 +319,7 @@ checkadmin(infile, newfile)
 	    }
 	}
 
-	if (ISWSP(c)) {
+	if (ISWSP(c) || (c == '\n')) {
 	    *p = '\0';
 	    if (!strlen(word))
 		continue;
@@ -789,7 +798,7 @@ parse_options(argc, argv)
 	    break;
 
 	case 'c':
-	    acceptfile = recipfile;	/* copy recip file path */
+	    copyacceptfile++;
 	    break;
 
 	default:
@@ -811,6 +820,10 @@ parse_options(argc, argv)
     if (host == NULL || list == NULL || optionerror) {
 	usage();
 	logandexit(EX_USAGE, "require hostname and list name or bad usage");
+    }
+
+    if (copyacceptfile) {
+	acceptfile = recipfile;	/* copy recip file path now */
     }
 }
 
@@ -1070,7 +1083,8 @@ prepare_arguments(argc, argv)
 
     /* read and add recipient list if exits
      */
-    if (acceptcheck(acceptbuf, originator) == 0) {
+    if (acceptcheck(acceptbuf, origMsg.sender) == 0
+	&& acceptcheck(acceptbuf, origMsg.from) == 0) {
 	accept_error = 1;
     }
 
@@ -1134,7 +1148,11 @@ prepare_arguments(argc, argv)
 	} else {
 	    int fd;
 	    strcpy(archivetmp, "msgXXXXXX");
+#ifdef HAVE_MKSTEMP
 	    mktemp(archivetmp);
+#else
+	    mktemp(archivetmp);
+#endif
 	    if (debug == 0 && (fd = creat(archivetmp, 0644)) == -1) {
 		logerror("%s: cannot make file\n", archivetmp);
 		archivedir = NULL;
@@ -1252,9 +1270,16 @@ MIME_makeSubj(s)
     extern void MIME_strHeaderDecode(char*, char*, int);
     extern void MIME_strHeaderEncode(char*, char*, int);
 
-    char *p;
+    char *p, *t;
     char q[MAXSUBJLEN], r[MAXSUBJLEN * 3];
 
+    if (strstr(s, "\e\e")) {
+	return s;		/* mimekit doesn't handle it */
+    }
+    if (strstr(s, "\n\n")) {
+	return "";
+    }
+    
     MIME_SPACE_ENCODING = 1;
     MIME_strHeaderDecode(s, q, sizeof(q));
     MIME_SPACE_ENCODING = 0;
@@ -1263,8 +1288,28 @@ MIME_makeSubj(s)
     p = (char*) malloc(sizeof(r));
     if (p == NULL)
 	return s;		/* NG -- return as is. */
-    xstrncpy(p, r, sizeof(r));
-    return(p);
+
+    xstrncpy(p, r, sizeof(r) - 1);
+ 
+    for (t = p; t = strchr(t, '\n'); t++) {
+ 	switch (*(t+1)) {
+ 	case '\0':
+ 	    *t = '\0';
+ 	    break;
+ 	case '\n':
+ 	    strcpy(t, t+1);
+ 	    break;
+ 	case ' ':
+ 	case '\t':
+ 	    if (*(t+2) == '\n')
+ 		strcpy(t, t+2);
+ 	    break;
+ 	default:
+ 	    if (!ISWSP(*(t+1)))
+ 		return s;
+ 	}
+    }
+    return p;
 }
 #endif
 
@@ -1409,6 +1454,7 @@ send_message()
     
     FILE *pipe = NULL, *headf = NULL, *footf = NULL;
 
+    int dummysum;	/* to keep sum compatible with older versions */
     
     /* Now, check external configuration file existence then open files
      */
@@ -1603,16 +1649,28 @@ send_message()
     bodysum = 0;
     if (headf != NULL) {
 	while (fgets(buf, sizeof buf, headf) != NULL) {
+	    /* dot stuffing, but do not sum '.' for backward compatibility */
+	    if (*buf == '.') {
+		fputs_sum(".", pipe, &dummysum);
+	    }
 	    fputs_sum(buf, pipe, &bodysum);
 	}
     }
     
     while (fgets(buf, sizeof buf, noisef == NULL ? stdin : noisef) != NULL) {
+	/* dot stuffing, but do not sum '.' for backward compatibility */
+	if (*buf == '.') {
+	    fputs_sum(".", pipe, &dummysum);
+	}
 	fputs_sum(buf, pipe, &bodysum);
     }
     
     if (footf != NULL) {
 	while (fgets(buf, sizeof buf, footf) != NULL) {
+	    /* dot stuffing, but do not sum '.' for backward compatibility */
+	    if (*buf == '.') {
+		fputs_sum(".", pipe, &dummysum);
+	    }
 	    fputs_sum(buf, pipe, &bodysum);
 	}
     }

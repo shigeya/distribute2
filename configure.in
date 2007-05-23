@@ -125,6 +125,7 @@ if test $dis_cv_mimekit = "no"; then
 	AC_MSG_RESULT(not using mimekit)
 else
 	AC_MSG_RESULT(found using $dis_cv_mimekit_dir)
+	AC_DEFINE(USE_MIMEKIT)
 fi
 
 dnl Checks for programs.
@@ -184,8 +185,8 @@ else
 	if test "$dis_cv_def_maxhostnamelen_netdb" = yes; then
 		AC_DEFINE(USE_NETDB_H)
 	else
-		echo "Fatal: no MAXHOSTNAMELEN found"
-		exit 1
+		echo "WARNING: no MAXHOSTNAMELEN found : using 1024 as default"
+		AC_DEFINE(MAXHOSTNAMELEN, "1024")
 	fi
 fi
 
@@ -210,7 +211,7 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
 
 dnl Checks for library functions.
-AC_CHECK_FUNCS(gethostname strspn strstr flock lockf strchr strrchr memcpy memcmp sysinfo vsnprintf snprintf)
+AC_CHECK_FUNCS(gethostname strspn strstr flock lockf strchr strrchr memcpy memcmp sysinfo vsnprintf snprintf mkstemp)
 AC_REPLACE_FUNCS(strsep)
 
 AC_OUTPUT(Makefile)

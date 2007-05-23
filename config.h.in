@@ -81,6 +81,8 @@
 
 #undef USE_MSC
 
+#undef USE_MIMEKIT
+
 #undef USE_SYS_PARAM_H
 
 #undef USE_NETDB_H
@@ -141,3 +143,6 @@
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
+
+/* Define if you have mkstemp */
+#undef HAVE_MKSTEMP

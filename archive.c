@@ -261,8 +261,12 @@ doarchive()
     }
 
     strcpy(tmpname, "msgXXXXXX");
+#ifdef HAVE_MKSTEMP
+    mkstemp(tmpname);
+#else
     mktemp(tmpname);
-
+#endif
+    
     if ((fd = creat(tmpname, 0640)) == -1) {
 	logandexit(EX_CANTCREAT, "Cannot make file: %s\n", tmpname);
     }
