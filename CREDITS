@@ -1,5 +1,8 @@
 Following people contributes patches/extensions to this program.
 
+Note that some of e-mail addresses are obsolete long time ago.
+please note these are kept as-is for historical purposes.
+
 
 Brent Chapman
 	Original Author (He is not using distribute since long time ago.)
@@ -11,7 +14,7 @@ Shin Yosimura
 Yoshitaka Tokugawa
 	Several useful hacks
 
-Shigeya Suzuki	<shigeya@foretune.co.jp>
+Shigeya Suzuki	<shigeya@wide.ad.jp> (previously: shigeya@foretune.co.jp)
 	Locking, lots of source cleaning and extensions
 
 Hiroaki Takada	<hiro@is.s.u-tokyo.ac.jp>
@@ -23,6 +26,8 @@ Susumu Sano <sano@nec.co.jp>
 pdp@cyber-fleet.com
 	Cc:Mail bouce hack.
 
+Junichiro 'itojun' Hagino  <itojun@itojun.org>
+	Autoconf support and other hacks
 
 Minor Fixes / platform support by:
 	Takamichi Miyoshi <miyoshi@iij.ad.jp>
@@ -31,5 +36,3 @@ Minor Fixes / platform support by:
 	Koga <y-koga@ccs.mt.nec.co.jp>
 	<nao@jaist.ac.jp>
 	jun@soum.co.jp
-
-$Id$
